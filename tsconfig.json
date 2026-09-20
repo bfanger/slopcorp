@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "types": ["node", "dom-chromium-ai"],
+    "allowJs": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "*.config.js"]
+}
