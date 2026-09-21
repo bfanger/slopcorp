@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { mount } from "svelte";
 import App from "./components/App.svelte";
 import MainScene from "./scenes/MainScene";
+import "./styles.css";
 
 const game = new Phaser.Game({
   type: Phaser.WEBGL,
