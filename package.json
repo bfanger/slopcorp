@@ -23,6 +23,8 @@
     "vitest": "^5.0.1"
   },
   "dependencies": {
+    "ajv": "^8.20.0",
+    "py-ast": "^1.16.0",
     "remark": "^15.0.1",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",

@@ -1,22 +1,26 @@
 import { describe, expect, it } from "vitest";
-import parseToolcall from "./parseToolcall";
+import parseFunctioncall from "./parseToolcall";
 
-describe("parseToolcall", () => {
-  it.each([
-    "getInventory",
-    "getInventory()",
-    "print(getInventory())",
-  ])("%s returns the getInventory tool with no arguments", (text) => {
-    expect(parseToolcall(text)).toEqual({
-      tool: "getInventory",
-      arguments: [],
-    });
-  });
+describe("parseFunctioncall", () => {
+  it.each(["getInventory", "getInventory()", "print(getInventory())"])(
+    "%s returns the getInventory tool with no arguments",
+    (text) => {
+      expect(parseFunctioncall(text)).toEqual({
+        tool: "getInventory",
+        args: {},
+      });
+    },
+  );
 
   it("getWeather(location=London) returns the getWeather tool with a location argument", () => {
-    expect(parseToolcall("getWeather(location=London)")).toEqual({
+    expect(parseFunctioncall("getWeather(location=London)")).toEqual({
       tool: "getWeather",
-      arguments: [{ location: "London" }],
+      args: { location: "London" },
     });
   });
+  // @TODO support:
+  // {"action": "getWeather", "parameters": {"city": "Amsterdam"}}
+
+  // @TODO support:
+  // getWeather city=London
 });

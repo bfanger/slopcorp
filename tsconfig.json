@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
     "strict": true,
     "noEmit": true,
-    "types": ["node", "dom-chromium-ai"],
+    "types": ["node", "dom-chromium-ai", "vite/client"],
     "allowJs": true,
     "skipLibCheck": true
   },

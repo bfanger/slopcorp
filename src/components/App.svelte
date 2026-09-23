@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Conversation } from "../services/chat-fns.svelte";
 
-  let prompt = $state("How many items do you have?");
+  let prompt = $state("Where is it hotter? Amsterdam or Groningen?");
 
   const chat = new Conversation(
     `
@@ -25,8 +25,44 @@ When the user is asking for information, use the information you've gathered wit
         name: "placeItem",
         description:
           "Place an item from your inventory into a specified target",
-        inputSchema: {},
+        inputSchema: {
+          type: "object",
+          properties: {
+            item: { type: "string", description: "Name of the item" },
+            target: { type: "string", description: "Where to place the item" },
+          },
+          required: ["item", "target"],
+        },
         execute: () => Promise.resolve("that item is not in your inventory"),
+      },
+      {
+        name: "getWeather",
+        description: "Get the weather in a location.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            city: {
+              type: "string",
+              description: "The city to check for the weather condition.",
+            },
+          },
+          required: ["city"],
+        },
+        async execute({ city }: { city: string }) {
+          const temps: Record<string, number | undefined> = {
+            groningen: 19,
+            amsterdam: 21,
+          };
+          const query = city.toLowerCase().trim();
+          const temp = temps[query];
+          if (!temp) {
+            throw new Error(`Location "${city}" is not supported`);
+          }
+          return JSON.stringify({
+            temp,
+            weather: Math.random() < 0.5 ? "sunny" : "rainy",
+          });
+        },
       },
     ],
   );
@@ -46,7 +82,7 @@ When the user is asking for information, use the information you've gathered wit
           class="bg-teal-700 text-white p-2 rounded-sm font-medium max-w-fit"
           title={message.content}
         >
-          {message.tool}
+          {message.toolCall?.name}({JSON.stringify(message.toolCall?.args)})
         </div>
       {:else}
         <pre
