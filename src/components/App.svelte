@@ -1,11 +1,18 @@
 <script lang="ts">
+  import {
+    getInventoryTool,
+    getLocationsTool,
+    moveToTool,
+  } from "../ecs/ecs-fns";
+  import { createEntities } from "../scenes/Level1";
   import { Conversation } from "../services/Conversation.svelte";
   const testPrompts = {
-    weather1: "Where is it hotter? Amsterdam or Groningen?",
-    weather2: "Where is it hotter? NY or LA?",
+    fix: "Fix the printer issue",
   };
 
-  let prompt = $state(testPrompts.weather1);
+  let prompt = $state(testPrompts.fix);
+
+  const entities = createEntities();
 
   const chat = new Conversation(
     `
@@ -17,14 +24,12 @@ When the user is asking for information, use the information you've gathered wit
 
 - Before calling a tool describe the goal of that action without mentioning the name of the tool itself
 - Don't make the exact same toolcall you've made in the previous message.
+- tool_code format is using Python, for example: toolName(parameter="value")
 `,
     [
-      {
-        name: "getInventory",
-        description: "Get a list of items you are carrying in your inventory",
-        execute: () => Promise.resolve("inventory is empty"),
-        inputSchema: {},
-      },
+      getLocationsTool(entities),
+      moveToTool(entities),
+      getInventoryTool(entities),
       {
         name: "placeItem",
         description:
@@ -38,39 +43,6 @@ When the user is asking for information, use the information you've gathered wit
           required: ["item", "target"],
         },
         execute: () => Promise.resolve("that item is not in your inventory"),
-      },
-      {
-        name: "getWeather",
-        description: "Get the weather in a location.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            city: {
-              type: "string",
-              description: "The city to check for the weather condition.",
-            },
-          },
-          required: ["city"],
-        },
-        execute({ city }: { city: string }) {
-          const temps: Record<string, number | undefined> = {
-            groningen: 19,
-            amsterdam: 21,
-            "new york": 17,
-            "los angeles": 16,
-          };
-          const query = city.toLowerCase().trim();
-          const temp = temps[query];
-          if (!temp) {
-            throw new Error(`Location "${city}" is not supported`);
-          }
-          return Promise.resolve(
-            JSON.stringify({
-              temp,
-              weather: Math.random() < 0.5 ? "sunny" : "rainy",
-            }),
-          );
-        },
       },
     ],
   );

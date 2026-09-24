@@ -1,14 +1,14 @@
 import Phaser from "phaser";
 import { mount } from "svelte";
 import App from "./components/App.svelte";
-import MainScene from "./scenes/MainScene";
 import "./styles.css";
+import Level1 from "./scenes/Level1";
 
 export const game = new Phaser.Game({
   type: Phaser.WEBGL,
   width: 640,
   height: 480,
-  scene: [MainScene],
+  scene: [Level1],
   canvas: document.querySelector("canvas")!,
 });
 

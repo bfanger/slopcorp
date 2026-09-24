@@ -8,14 +8,14 @@ Player sees a printer with a flashing warning sign in the office, the robot is a
 
 ## Locations
 
-- office
+- office floor
 - storage cupboard
 
-### Office
+### Office floor
 
 Has printer
 Has a garbage bin
-Has receptionist
+Has cabinet with a drawer and a key
 
 ### Storage cupboard
 

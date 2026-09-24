@@ -11,6 +11,7 @@ type ChatMessage = {
   role: "user" | "assistant" | "tool" | "error";
   content: string;
   toolCall?: ToolCall;
+  error?: Error;
 };
 
 export class Conversation {
@@ -73,6 +74,7 @@ Tool description with parameters:\n\n${JSON.stringify(
     llm: LanguageModel,
     message: string,
     previousToolCall?: ToolCall,
+    retry = 2,
   ): Promise<void> {
     const response = await llm.prompt(message);
     const [nodes, toolCalls] = stripToolCalls(
@@ -91,13 +93,14 @@ Tool description with parameters:\n\n${JSON.stringify(
       }
       return;
     }
+    let toolCall: ToolCall | undefined;
     try {
       if (toolCalls.length > 1) {
         console.warn(response);
 
         throw new Error("Only one toolcall per message is supported");
       }
-      const toolCall = parseToolCall(toolCalls[0].value);
+      toolCall = parseToolCall(toolCalls[0].value);
       if (
         previousToolCall &&
         JSON.stringify(toolCall) === JSON.stringify(previousToolCall)
@@ -130,14 +133,20 @@ Tool description with parameters:\n\n${JSON.stringify(
         toolCall,
       );
     } catch (err) {
-      console.warn(err);
-      const content = (err as Error).message ?? "An error occurred";
-      this.messages.push({ role: "error", content });
-      const oops: LanguageModelMessage = {
-        role: "user",
-        content: `<error>${content}</error>`,
-      };
-      await llm.append([oops]);
+      console.warn(`Failed to process LLM response:\n${response}`, {
+        cause: err,
+      });
+      const reply = `<error>${(err as Error).message ?? "An error occurred"}</error>`;
+      this.messages.push({
+        role: "error",
+        content: toolCall
+          ? `An error occurred trying, "${toolCall.action}(${JSON.stringify(toolCall.parameters)})`
+          : "Invalid tool call",
+      });
+      if (retry > 0) {
+        return this.processPrompt(llm, reply, previousToolCall, retry - 1);
+      }
+      await llm.append([{ role: "user", content: reply }]);
     }
   }
 
@@ -185,5 +194,5 @@ function validateParameters(
   if (validators[key](data)) {
     return false;
   }
-  return `the parameters don't match the json schema: \n"${ajv.errorsText(validators[key].errors)}\n\nExpected schema:\n${JSON.stringify(schema)}\n\nReceived data:\n${JSON.stringify(data)}\n\nTool call format:\ntoolName(parameter="value")`;
+  return `the parameters don't match the json schema: \n"${ajv.errorsText(validators[key].errors)}\n\nExpected schema:\n${JSON.stringify(schema)}\n\nReceived data:\n${JSON.stringify(data)}\n\ntool_code format is using Python, example:\ntoolName(parameter="value")`;
 }
