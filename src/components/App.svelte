@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Conversation } from "../services/chat-fns.svelte";
+  import { Conversation } from "../services/Conversation.svelte";
   const testPrompts = {
     weather1: "Where is it hotter? Amsterdam or Groningen?",
     weather2: "Where is it hotter? NY or LA?",
@@ -52,7 +52,7 @@ When the user is asking for information, use the information you've gathered wit
           },
           required: ["city"],
         },
-        async execute({ city }: { city: string }) {
+        execute({ city }: { city: string }) {
           const temps: Record<string, number | undefined> = {
             groningen: 19,
             amsterdam: 21,
@@ -64,10 +64,12 @@ When the user is asking for information, use the information you've gathered wit
           if (!temp) {
             throw new Error(`Location "${city}" is not supported`);
           }
-          return JSON.stringify({
-            temp,
-            weather: Math.random() < 0.5 ? "sunny" : "rainy",
-          });
+          return Promise.resolve(
+            JSON.stringify({
+              temp,
+              weather: Math.random() < 0.5 ? "sunny" : "rainy",
+            }),
+          );
         },
       },
     ],
@@ -75,17 +77,17 @@ When the user is asking for information, use the information you've gathered wit
 </script>
 
 <div>
-  <div class="flex flex-col text-xs w-fit min-w-160 p-1 gap-3">
+  <div class="flex w-fit min-w-160 flex-col gap-3 p-1 text-xs">
     {#each chat.messages as message, i (i)}
       {#if message.role === "error"}
         <div
-          class="bg-orange-800 text-white p-2 rounded-sm font-medium max-w-fit"
+          class="max-w-fit rounded-sm bg-orange-800 p-2 font-medium text-white"
         >
           {message.content}
         </div>
       {:else if message.role === "tool"}
         <div
-          class="bg-teal-700 text-white p-2 rounded-sm font-medium max-w-fit"
+          class="max-w-fit rounded-sm bg-teal-700 p-2 font-medium text-white"
           title={message.content}
         >
           {message.toolCall?.action}({JSON.stringify(
@@ -94,15 +96,16 @@ When the user is asking for information, use the information you've gathered wit
         </div>
       {:else}
         <pre
-          class={"rounded-2xl px-4 py-2 whitespace-pre-wrap max-w-md font-sans " +
-            (message.role === "user"
-              ? "bg-[#0b84ff] text-white ml-4 self-end"
-              : "bg-[#e9e9eb] text-black mr-4 self-start")}>{message.content}</pre>
+          class={`max-w-md rounded-2xl px-4 py-2 font-sans whitespace-pre-wrap ${
+            message.role === "user"
+              ? "ml-4 self-end bg-[#0b84ff] text-white"
+              : "mr-4 self-start bg-[#e9e9eb] text-black"
+          }`}>{message.content}</pre>
       {/if}
     {/each}
   </div>
   {#if chat.thinking}
-    <div class="animate-pulse text-gray-700 p-2">Thinking...</div>
+    <div class="animate-pulse p-2 text-gray-700">Thinking...</div>
   {/if}
 </div>
 <form
@@ -115,11 +118,11 @@ When the user is asking for information, use the information you've gathered wit
 >
   <input
     bind:value={prompt}
-    class="border border-gray-700 rounded-l-full py-2 px-4 grow"
+    class="grow rounded-l-full border border-gray-700 px-4 py-2"
   />
   <button
     type="submit"
-    class="bg-[#0b84ff] text-white font-medium p-2 px-4 rounded-r-full"
+    class="rounded-r-full bg-[#0b84ff] p-2 px-4 font-medium text-white"
   >
     Send
   </button>

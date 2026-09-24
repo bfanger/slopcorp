@@ -10,5 +10,16 @@
     "allowJs": true,
     "skipLibCheck": true
   },
-  "include": ["src", "*.config.js"]
+  "include": [
+    "src",
+    "src/**/*.svelte",
+    "*.config.js",
+    "**/*.ts",
+    ".*/**/*.ts",
+    "**/*.cjs",
+    ".*/**/*.cjs",
+    ".*.cjs",
+    "**/*.js",
+    ".*.js"
+  ]
 }

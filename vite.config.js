@@ -1,6 +1,5 @@
 // @ts-check
 import { existsSync } from "node:fs";
-/// <reference types="vitest/config" />
 import { defineConfig } from "vitest/config";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
@@ -9,7 +8,10 @@ import { fileURLToPath } from "node:url";
 const inDocker = existsSync("/.dockerenv");
 
 export default defineConfig({
-  plugins: [svelte({ compilerOptions: { experimental: { async: true } } }), tailwindcss()],
+  plugins: [
+    svelte({ compilerOptions: { experimental: { async: true } } }),
+    tailwindcss(),
+  ],
   server: {
     host: inDocker ? true : undefined,
     watch: {

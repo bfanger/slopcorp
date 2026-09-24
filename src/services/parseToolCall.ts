@@ -8,10 +8,10 @@ export type ToolCall = {
 /**
  * Extract the tool call from a tool_code block.
  */
-export default function parseToolcall(text: string): ToolCall {
+export default function parseToolCall(text: string): ToolCall {
   const ast = parse(text.trim());
   const stmt = ast.body[0];
-  if (!stmt || stmt.nodeType !== "Expr") {
+  if (stmt?.nodeType !== "Expr") {
     throw new Error(`Expected a single expression in: ${text}`);
   }
   const expr: ExprNode = stmt.value;
@@ -21,11 +21,11 @@ export default function parseToolcall(text: string): ToolCall {
     return { action: expr.id, parameters: {} };
   }
   if (expr.nodeType !== "Call") {
-    throw new Error(`Failed to extract toolcall from: ${text}`);
+    throw new Error(`Failed to extract ToolCall from: ${text}`);
   }
   const func = expr.func;
   if (func.nodeType !== "Name") {
-    throw new Error(`Failed to extract toolcall from: ${text}`);
+    throw new Error(`Failed to extract ToolCall from: ${text}`);
   }
   const parameters: Record<string, unknown> = {};
   for (const kw of expr.keywords) {
@@ -34,5 +34,5 @@ export default function parseToolcall(text: string): ToolCall {
     }
     parameters[kw.arg] = literalEval(toSource(kw.value));
   }
-  return { action: func.id, parameters: parameters };
+  return { action: func.id, parameters };
 }

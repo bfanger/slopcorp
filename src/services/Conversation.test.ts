@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Conversation } from "./chat-fns.svelte";
+import { Conversation } from "./Conversation.svelte";
 
 describe("Conversation", () => {
   it("executes the getWeather tool and returns the assistant's answer", async () => {
@@ -59,7 +59,10 @@ describe("Conversation", () => {
       {"type":"object","properties":{"city":{"type":"string","description":"The city to check for the weather condition."}},"required":["city"]}
 
       Received data:
-      {"location":"Groningen"}",
+      {"location":"Groningen"}
+
+      Tool call format:
+      toolName(parameter="value")",
         "role": "error",
       }
     `);
@@ -68,14 +71,14 @@ describe("Conversation", () => {
 
 function mockLLM(responses: string[]) {
   const seenPrompts: string[] = [];
-  const createLLM = async (): Promise<LanguageModel> =>
-    ({
-      prompt: async (message: string) => {
+  const createLLM = () =>
+    Promise.resolve({
+      prompt: (message: string) => {
         seenPrompts.push(message);
-        return responses.shift()!;
+        return Promise.resolve(responses.shift()!);
       },
-      append: async () => {},
-    }) as unknown as LanguageModel;
+      append: () => Promise.resolve(undefined),
+    }) as unknown as Promise<LanguageModel>;
   return { createLLM, seenPrompts };
 }
 
@@ -93,7 +96,7 @@ function createDummyWeatherTool(): LanguageModelTool {
       },
       required: ["city"],
     },
-    async execute(args: { city: string }) {
+    execute(args: { city: string }) {
       const cities: Record<string, number | undefined> = {
         groningen: 19,
       };
@@ -102,7 +105,7 @@ function createDummyWeatherTool(): LanguageModelTool {
       if (!temperature) {
         throw new Error(`Location "${args.city}" is not supported`);
       }
-      return JSON.stringify({ temperature });
+      return Promise.resolve(JSON.stringify({ temperature }));
     },
   };
 }

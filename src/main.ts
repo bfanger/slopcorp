@@ -4,7 +4,7 @@ import App from "./components/App.svelte";
 import MainScene from "./scenes/MainScene";
 import "./styles.css";
 
-const game = new Phaser.Game({
+export const game = new Phaser.Game({
   type: Phaser.WEBGL,
   width: 640,
   height: 480,
@@ -12,4 +12,6 @@ const game = new Phaser.Game({
   canvas: document.querySelector("canvas")!,
 });
 
-const app = mount(App, { target: document.querySelector("svelte-app")! });
+export const app = mount(App, {
+  target: document.querySelector("svelte-app")!,
+});

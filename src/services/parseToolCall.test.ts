@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import parseFunctioncall from "./parseToolcall";
+import parseToolCall from "./parseToolCall";
 
-describe("parseFunctioncall", () => {
+describe("parseToolCall", () => {
   it.each(["getInventory", "getInventory()"])(
     "%s returns the getInventory tool with empty parameters",
     (text) => {
-      expect(parseFunctioncall(text)).toEqual({
+      expect(parseToolCall(text)).toEqual({
         action: "getInventory",
         parameters: {},
       });
@@ -14,7 +14,7 @@ describe("parseFunctioncall", () => {
   it.each(["getWeather(location='London')", 'getWeather(location="London")'])(
     "%s returns the getWeather action with a location argument",
     (text) => {
-      expect(parseFunctioncall(text)).toEqual({
+      expect(parseToolCall(text)).toEqual({
         action: "getWeather",
         parameters: { location: "London" },
       });
