@@ -3,9 +3,9 @@ import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import parseToolcall, { type ToolCall } from "./parseToolcall";
+import type { AnyValidateFunction } from "ajv/dist/core";
 
 const markdownProcessor = unified().use(remarkParse).use(remarkStringify);
-const ajv = new Ajv({ allErrors: true });
 
 type ChatMessage = {
   role: "user" | "assistant" | "tool" | "error";
@@ -16,22 +16,19 @@ type ChatMessage = {
 export class Conversation {
   thinking = $state(false);
   messages = $state<ChatMessage[]>([]);
+
   private systemPrompt: string;
   private tools: Record<string, LanguageModelTool>;
+  private createLLM: typeof LanguageModel.create;
   private llm: LanguageModel | undefined;
-  private validators: Record<string, ReturnType<Ajv["compile"]>> = {};
 
-  constructor(systemPrompt: string, tools: LanguageModelTool[]) {
+  constructor(
+    systemPrompt: string,
+    tools: LanguageModelTool[],
+    createLLM?: typeof LanguageModel.create,
+  ) {
     this.tools = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
-    for (const tool of tools) {
-      try {
-        this.validators[tool.name] = ajv.compile(tool.inputSchema);
-      } catch (cause) {
-        throw new Error(`Invalid inputSchema for tool "${tool.name}"`, {
-          cause,
-        });
-      }
-    }
+    this.createLLM = createLLM ?? ((options) => LanguageModel.create(options));
     const toolsIntro = `
 
 Available tools:
@@ -107,12 +104,20 @@ Tool description with parameters:\n\n${JSON.stringify(
       ) {
         throw new Error("Toolcall is identical");
       }
-      const tool = this.tools[toolCall.name];
+      const tool = this.tools[toolCall.action];
       if (!tool) {
-        throw new Error(`Tool "${toolCall.name}" doesn't exists`);
+        throw new Error(`Tool "${toolCall.action}" doesn't exists`);
       }
-      const params = toolCall.args;
-      this.assertValidArgs(toolCall.name, params);
+      const params = toolCall.parameters;
+      const validationError = validateParameters(
+        tool.inputSchema as Record<string, unknown>,
+        params,
+      );
+      if (validationError) {
+        throw new Error(
+          `tool "${toolCall.action}" was called incorrectly.\n${validationError}`,
+        );
+      }
       const answer = await tool.execute(params);
       this.messages.push({
         role: "tool",
@@ -136,22 +141,9 @@ Tool description with parameters:\n\n${JSON.stringify(
     }
   }
 
-  private assertValidArgs(toolName: string, params: object): void {
-    const validate = this.validators[toolName];
-    if (!validate) {
-      return;
-    }
-    if (!validate(params)) {
-      throw new Error(
-        `Invalid arguments for tool "${toolName}": ` +
-          ajv.errorsText(validate.errors),
-      );
-    }
-  }
-
   async execute<T>(fn: (llm: LanguageModel) => Promise<T>): Promise<T> {
     if (!this.llm) {
-      this.llm = await LanguageModel.create({
+      this.llm = await this.createLLM({
         samplingMode: "predictable",
         expectedInputs: [{ type: "text", languages: ["en"] }],
         expectedOutputs: [{ type: "text", languages: ["en"] }],
@@ -179,4 +171,21 @@ export function stripToolCalls(ast: RootNode): [RootNode, CodeNode[]] {
     }
   }
   return [ast, toolCalls.reverse()];
+}
+
+const ajv = new Ajv({ allErrors: true });
+const validators: Record<string, AnyValidateFunction> = {};
+
+function validateParameters(
+  schema: Record<string, unknown>,
+  data: object,
+): false | string {
+  let key = JSON.stringify(schema);
+  if (!validators[key]) {
+    validators[key] = ajv.compile(schema);
+  }
+  if (validators[key](data)) {
+    return false;
+  }
+  return `the parameters don't match the json schema: \n"${ajv.errorsText(validators[key].errors)}\n\nExpected schema:\n${JSON.stringify(schema)}\n\nReceived data:\n${JSON.stringify(data)}`;
 }

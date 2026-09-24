@@ -1,7 +1,11 @@
 <script lang="ts">
   import { Conversation } from "../services/chat-fns.svelte";
+  const testPrompts = {
+    weather1: "Where is it hotter? Amsterdam or Groningen?",
+    weather2: "Where is it hotter? NY or LA?",
+  };
 
-  let prompt = $state("Where is it hotter? Amsterdam or Groningen?");
+  let prompt = $state(testPrompts.weather1);
 
   const chat = new Conversation(
     `
@@ -52,6 +56,8 @@ When the user is asking for information, use the information you've gathered wit
           const temps: Record<string, number | undefined> = {
             groningen: 19,
             amsterdam: 21,
+            "new york": 17,
+            "los angeles": 16,
           };
           const query = city.toLowerCase().trim();
           const temp = temps[query];
@@ -82,7 +88,9 @@ When the user is asking for information, use the information you've gathered wit
           class="bg-teal-700 text-white p-2 rounded-sm font-medium max-w-fit"
           title={message.content}
         >
-          {message.toolCall?.name}({JSON.stringify(message.toolCall?.args)})
+          {message.toolCall?.action}({JSON.stringify(
+            message.toolCall?.parameters,
+          )})
         </div>
       {:else}
         <pre

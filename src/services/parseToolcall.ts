@@ -1,66 +1,38 @@
-import {
-  literalEval,
-  parse,
-  toSource,
-  type Constant,
-  type ExprNode,
-  type Name,
-} from "py-ast";
+import { literalEval, parse, toSource, type ExprNode } from "py-ast";
 
 export type ToolCall = {
-  name: string;
-  args: Record<string, unknown>;
+  action: string;
+  parameters: Record<string, unknown>;
 };
 
 /**
- * Extract which tool the LLM tried to call in a tool_code block.
- *
- * The block is parsed with py-ast, so invalid Python is rejected outright
- * instead of silently matching a substring.
+ * Extract the tool call from a tool_code block.
  */
 export default function parseToolcall(text: string): ToolCall {
-  console.info({ text });
-  const module = parse(text.trim());
-  const stmt = module.body[0];
-  let expr: ExprNode | undefined =
-    stmt && stmt.nodeType === "Expr" ? stmt.value : undefined;
-
-  // Unwrap a top-level print(...) wrapper.
-  if (
-    expr?.nodeType === "Call" &&
-    expr.func.nodeType === "Name" &&
-    expr.func.id === "print" &&
-    expr.args.length === 1
-  ) {
-    expr = expr.args[0];
+  const ast = parse(text.trim());
+  const stmt = ast.body[0];
+  if (!stmt || stmt.nodeType !== "Expr") {
+    throw new Error(`Expected a single expression in: ${text}`);
   }
+  const expr: ExprNode = stmt.value;
 
-  if (expr?.nodeType === "Name") {
-    return { name: expr.id, args: {} };
+  if (expr.nodeType === "Name") {
+    // A call without ()
+    return { action: expr.id, parameters: {} };
   }
-
-  if (expr?.nodeType === "Call" && expr.func.nodeType === "Name") {
-    const tool = expr.func.id;
-    const args: Record<string, unknown> = {};
-    expr.args.forEach((arg, i) => {
-      const value = toValue(arg);
-      if (value !== undefined) args[String(i)] = value;
-    });
-    for (const kw of expr.keywords) {
-      if (kw.arg) args[kw.arg] = toValue(kw.value);
+  if (expr.nodeType !== "Call") {
+    throw new Error(`Failed to extract toolcall from: ${text}`);
+  }
+  const func = expr.func;
+  if (func.nodeType !== "Name") {
+    throw new Error(`Failed to extract toolcall from: ${text}`);
+  }
+  const parameters: Record<string, unknown> = {};
+  for (const kw of expr.keywords) {
+    if (!kw.arg) {
+      throw new Error("Unexpected parameter");
     }
-    return { name: tool, args };
+    parameters[kw.arg] = literalEval(toSource(kw.value));
   }
-
-  throw new Error(`No tool call found in: ${text}`);
-}
-
-function toValue(node: ExprNode): unknown {
-  if (node.nodeType === "Constant") return (node as Constant).value;
-  if (node.nodeType === "Name") return (node as Name).id;
-  try {
-    return literalEval(toSource(node));
-  } catch {
-    return undefined;
-  }
+  return { action: func.id, parameters: parameters };
 }
