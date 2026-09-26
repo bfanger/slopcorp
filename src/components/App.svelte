@@ -3,17 +3,22 @@
     getInventoryTool,
     getRoomsTool,
     moveToTool,
+    placeItemTool,
+    pickUpTool,
   } from "../ecs/ecs-tools";
-  import ECS from "../ecs/ECS";
-  import { createEntities } from "../scenes/Level1";
+  import { createLevel1 } from "../scenes/Level1";
   import { Conversation } from "../services/Conversation.svelte";
   const testPrompts = {
     fix: "Fix the printer issue",
+    game: "Play the game",
+    paper: "The printer needs paper",
   };
 
-  let prompt = $state(testPrompts.fix);
+  let prompt = $state(testPrompts.paper);
 
-  const ecs = new ECS(createEntities(), {});
+  const ecs = createLevel1(() => {
+    chat.steer("The printer issue is fixed! ");
+  });
 
   const chat = new Conversation(
     `
@@ -26,31 +31,31 @@ When the user is asking for information, use the information you've gathered wit
 - Before calling a tool describe the goal of that action without mentioning the name of the tool itself
 - Don't make the exact same toolcall you've made in the previous message.
 - tool_code format is using Python, for example: toolName(parameter="value")
+
+Syntax examples of tool calls:
+
+\`\`\`tool_code
+getRooms()
+\`\`\`
+
+\`\`\`tool_code
+moveTo(room="name_of_the_room")
+\`\`\`
+
+
 `,
     [
       getRoomsTool(ecs),
       moveToTool(ecs),
       getInventoryTool(ecs),
-      {
-        name: "placeItem",
-        description:
-          "Place an item from your inventory into a specified target",
-        inputSchema: {
-          type: "object",
-          properties: {
-            item: { type: "string", description: "Name of the item" },
-            target: { type: "string", description: "Where to place the item" },
-          },
-          required: ["item", "target"],
-        },
-        execute: () => Promise.resolve("that item is not in your inventory"),
-      },
+      pickUpTool(ecs),
+      placeItemTool(ecs),
     ],
   );
 </script>
 
 <div>
-  <div class="flex w-fit min-w-160 flex-col gap-3 p-1 text-xs">
+  <div class="flex w-fit min-w-160 flex-col p-1 text-xs">
     {#each chat.messages as message, i (i)}
       {#if message.role === "error"}
         <div
@@ -60,7 +65,9 @@ When the user is asking for information, use the information you've gathered wit
         </div>
       {:else if message.role === "tool"}
         <div
-          class="max-w-fit rounded-sm bg-teal-700 p-2 font-medium text-white"
+          class="mb-1 max-w-fit rounded-sm text-white {message.toolCallFailed
+            ? 'bg-amber-700'
+            : 'bg-teal-700'} px-2 py-1 leading-snug font-medium"
           title={message.content}
         >
           {message.toolCall?.action}({JSON.stringify(
@@ -69,16 +76,16 @@ When the user is asking for information, use the information you've gathered wit
         </div>
       {:else}
         <pre
-          class={`max-w-md rounded-2xl px-4 py-2 font-sans whitespace-pre-wrap ${
+          class={`mb-4 max-w-md rounded-2xl px-4 py-2 font-sans whitespace-pre-wrap ${
             message.role === "user"
-              ? "ml-4 self-end bg-[#0b84ff] text-white"
-              : "mr-4 self-start bg-[#e9e9eb] text-black"
+              ? "ml-4 self-end rounded-br-xs bg-[#0b84ff] text-white"
+              : "mr-4 self-start rounded-tl-xs bg-[#e9e9eb] text-black"
           }`}>{message.content}</pre>
       {/if}
     {/each}
   </div>
   {#if chat.thinking}
-    <div class="animate-pulse p-2 text-gray-700">Thinking...</div>
+    <div class="animate-pulse p-2 font-medium text-gray-700">Thinking...</div>
   {/if}
 </div>
 <form

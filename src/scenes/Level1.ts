@@ -1,11 +1,8 @@
 import Phaser from "phaser";
-import type { Entity, Room } from "../ecs/Entity";
-
-const OFFICE = "officeFloor";
-const CUPBOARD = "storageCupboard";
+import ECS, { createLocation } from "../ecs/ECS";
 
 export default class Level1 extends Phaser.Scene {
-  entities: Entity[] = [];
+  ecs!: ECS;
   private labels: Phaser.GameObjects.Text[] = [];
 
   constructor() {
@@ -16,54 +13,27 @@ export default class Level1 extends Phaser.Scene {
     this.reset();
   }
 
-  private label(x: number, y: number, text: string): Phaser.GameObjects.Text {
-    const g = this.add.text(x, y, text, { fontSize: "14px", color: "#ffffff" });
-    g.setOrigin(0.5, 0);
-    this.labels.push(g);
-    return g;
-  }
-
-  private entity(
-    name: string,
-    description: () => string,
-    location: Room,
-    x: number,
-    y: number,
-  ): Entity {
-    const e: Entity = { name, description, location };
-    this.label(x, y, name);
-    this.entities.push(e);
-    return e;
-  }
-
-  reset(): Entity[] {
+  reset() {
     for (const g of this.labels) {
       g.destroy();
     }
     this.labels = [];
-    this.entities = [];
-
-    return this.entities;
+    this.ecs = createLevel1(() => undefined);
   }
 }
 
-export function createEntities(): Entity[] {
-  const office: Room = {
-    type: "room",
-    name: "office",
-  };
-  const cupboard: Room = {
-    type: "room",
-    name: "cupboard",
-  };
-  return [
+export function createLevel1(onSuccess: () => void): ECS {
+  return new ECS(
+    [
+      ...createLocation("office", [{ name: "printer", locked: "paper" }]),
+      ...createLocation("cupboard", [{ name: "paper", portable: true }]),
+    ],
     {
-      name: "printer",
-      location: office,
+      unlocked(item) {
+        if (item.name === "printer") {
+          onSuccess();
+        }
+      },
     },
-    {
-      name: "paper",
-      location: cupboard,
-    },
-  ];
+  );
 }

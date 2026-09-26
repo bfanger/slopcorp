@@ -11,6 +11,7 @@ type ChatMessage = {
   role: "user" | "assistant" | "tool" | "error";
   content: string;
   toolCall?: ToolCall;
+  toolCallFailed?: boolean;
   error?: Error;
   retry?: string;
 };
@@ -18,11 +19,11 @@ type ChatMessage = {
 export class Conversation {
   thinking = $state(false);
   messages = $state<ChatMessage[]>([]);
-
   private systemPrompt: string;
   private tools: Record<string, LanguageModelTool>;
   private createLLM: typeof LanguageModel.create;
   private llm: LanguageModel | undefined;
+  private queue: string[] = [];
 
   constructor(
     systemPrompt: string,
@@ -37,23 +38,7 @@ Available tools:
 
 ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
 `;
-    const toolsWithInputSchema = `
-Tool description with parameters:\n\n${JSON.stringify(
-      {
-        tools: tools.map((tool) => ({
-          type: "function",
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.inputSchema,
-            strict: false,
-          },
-        })),
-      },
-      null,
-      2,
-    )}`;
-    this.systemPrompt = systemPrompt + toolsIntro + toolsWithInputSchema;
+    this.systemPrompt = systemPrompt + toolsIntro;
   }
 
   async prompt(message: string) {
@@ -77,6 +62,19 @@ Tool description with parameters:\n\n${JSON.stringify(
     previousToolCall?: ToolCall,
     retry = 2,
   ): Promise<void> {
+    if (this.queue.length > 0 && previousToolCall) {
+      const copy = [...this.queue];
+      this.queue = [];
+      message = copy.pop()!;
+      for (const text of copy) {
+        await llm.append(text);
+      }
+      this.messages.push({
+        role: "tool",
+        toolCall: { action: "game event", parameters: {} },
+        content: message,
+      });
+    }
     const response = await llm.prompt(message);
     const [nodes, toolCalls] = stripToolCalls(
       markdownProcessor.parse(response),
@@ -126,6 +124,7 @@ Tool description with parameters:\n\n${JSON.stringify(
       this.messages.push({
         role: "tool",
         toolCall,
+        toolCallFailed: (answer as { toolCallFailed?: true }).toolCallFailed,
         content: answer,
       });
       return this.processPrompt(
@@ -150,6 +149,10 @@ Tool description with parameters:\n\n${JSON.stringify(
       }
       await llm.append([{ role: "user", content: reply }]);
     }
+  }
+
+  steer(message: string) {
+    this.queue.push(message);
   }
 
   async execute<T>(fn: (llm: LanguageModel) => Promise<T>): Promise<T> {

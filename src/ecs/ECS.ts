@@ -116,6 +116,9 @@ export default class ECS {
     if (!entity || entity.location?.type !== "room") {
       return false;
     }
+    if (!entity.portable) {
+      return false;
+    }
     entity.location = inventory;
     this.hooks.pickup?.(entity);
     return true;

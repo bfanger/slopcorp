@@ -78,6 +78,14 @@ describe("Conversation", () => {
       ]
     `);
   });
+
+  it("queues steering messages", () => {
+    const chat = new Conversation("", []);
+    expect(chat.queue).toEqual([]);
+    chat.steer("turn left");
+    chat.steer("watch out");
+    expect(chat.queue).toEqual(["turn left", "watch out"]);
+  });
 });
 
 function mockLLM(responses: string[]) {
