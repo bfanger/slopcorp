@@ -1,10 +1,27 @@
-export type Location = {
-  type: "location";
-  name: string;
-};
-export type Inventory = { type: "inventory" };
-
+/**
+ * Item that can be interacted with in the game
+ */
 export type Entity = {
+  /* unique name (id) */
   name: string;
-  location?: Location | Inventory;
+  location: Room | Inventory;
+  /** Allow picking up */
+  portable?: true;
+  /** Allow opening and closing */
+  open?: boolean;
+  /** Can be unlocked using that item */
+  locked?: string;
+  /** when set to false,   */
+  discovered?: boolean;
 };
+
+export type Room = {
+  type: "room";
+  name: string;
+};
+
+type Inventory = typeof inventory;
+export const inventory = {
+  type: "inventory",
+  name: Symbol("Inventory"),
+} as const;

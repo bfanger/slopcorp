@@ -12,6 +12,7 @@ type ChatMessage = {
   content: string;
   toolCall?: ToolCall;
   error?: Error;
+  retry?: string;
 };
 
 export class Conversation {
@@ -142,6 +143,7 @@ Tool description with parameters:\n\n${JSON.stringify(
         content: toolCall
           ? `An error occurred trying, "${toolCall.action}(${JSON.stringify(toolCall.parameters)})`
           : "Invalid tool call",
+        retry: retry > 0 ? reply : "",
       });
       if (retry > 0) {
         return this.processPrompt(llm, reply, previousToolCall, retry - 1);

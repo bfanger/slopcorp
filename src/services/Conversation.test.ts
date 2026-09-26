@@ -49,9 +49,15 @@ describe("Conversation", () => {
     const prompt = "What's the weather in Groningen?";
     await chat.prompt(prompt);
 
-    expect(chat.messages.at(-1)).toMatchInlineSnapshot(`
-      {
-        "content": "tool "getWeather" was called incorrectly.
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "What's the weather in Groningen?",
+          "role": "user",
+        },
+        {
+          "content": "An error occurred trying, "getWeather({"location":"Groningen"})",
+          "retry": "<error>tool "getWeather" was called incorrectly.
       the parameters don't match the json schema: 
       "data must have required property 'city'
 
@@ -61,10 +67,15 @@ describe("Conversation", () => {
       Received data:
       {"location":"Groningen"}
 
-      Tool call format:
-      toolName(parameter="value")",
-        "role": "error",
-      }
+      tool_code format is using Python, example:
+      toolName(parameter="value")</error>",
+          "role": "error",
+        },
+        {
+          "content": "Empty response",
+          "role": "error",
+        },
+      ]
     `);
   });
 });

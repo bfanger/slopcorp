@@ -1,9 +1,10 @@
 <script lang="ts">
   import {
     getInventoryTool,
-    getLocationsTool,
+    getRoomsTool,
     moveToTool,
-  } from "../ecs/ecs-fns";
+  } from "../ecs/ecs-tools";
+  import ECS from "../ecs/ECS";
   import { createEntities } from "../scenes/Level1";
   import { Conversation } from "../services/Conversation.svelte";
   const testPrompts = {
@@ -12,7 +13,7 @@
 
   let prompt = $state(testPrompts.fix);
 
-  const entities = createEntities();
+  const ecs = new ECS(createEntities(), {});
 
   const chat = new Conversation(
     `
@@ -27,9 +28,9 @@ When the user is asking for information, use the information you've gathered wit
 - tool_code format is using Python, for example: toolName(parameter="value")
 `,
     [
-      getLocationsTool(entities),
-      moveToTool(entities),
-      getInventoryTool(entities),
+      getRoomsTool(ecs),
+      moveToTool(ecs),
+      getInventoryTool(ecs),
       {
         name: "placeItem",
         description:

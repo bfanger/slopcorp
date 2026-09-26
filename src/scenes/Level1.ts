@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { Entity, Location } from "../ecs/Entity";
+import type { Entity, Room } from "../ecs/Entity";
 
 const OFFICE = "officeFloor";
 const CUPBOARD = "storageCupboard";
@@ -26,7 +26,7 @@ export default class Level1 extends Phaser.Scene {
   private entity(
     name: string,
     description: () => string,
-    location: Location,
+    location: Room,
     x: number,
     y: number,
   ): Entity {
@@ -48,18 +48,15 @@ export default class Level1 extends Phaser.Scene {
 }
 
 export function createEntities(): Entity[] {
-  const office: Location = {
-    type: "location",
+  const office: Room = {
+    type: "room",
     name: "office",
   };
-  const cupboard: Location = {
-    type: "location",
+  const cupboard: Room = {
+    type: "room",
     name: "cupboard",
   };
   return [
-    {
-      name: "robot",
-    },
     {
       name: "printer",
       location: office,
