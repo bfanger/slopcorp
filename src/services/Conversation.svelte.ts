@@ -12,7 +12,6 @@ export type ChatMessage = {
   content: string;
   toolCall?: ToolCall;
   toolCallFailed?: boolean;
-  error?: Error;
   retry?: string;
 };
 
@@ -147,14 +146,13 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
       console.warn(`Failed to process LLM response:\n${response}`, {
         cause: err,
       });
-      const reply = `<error>${(err as Error).message ?? "An error occurred"}</error>`;
+      const reply = `<error>\n${(err as Error).message ?? "An error occurred"}\n</error>`;
       this.messages.push({
         role: "error",
         content: toolCall
           ? `An error occurred trying, "${toolCall.action}(${JSON.stringify(toolCall.parameters)})`
           : "Invalid tool call",
         retry: retry > 0 ? reply : "",
-        error: err as Error,
       });
       if (retry > 0) {
         return this.processPrompt(llm, reply, previousToolCall, retry - 1);

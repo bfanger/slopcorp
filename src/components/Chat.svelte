@@ -89,6 +89,7 @@ moveTo(room="name_of_the_room")
       {#if message.role === "error"}
         <div
           class="mb-1 max-w-fit rounded-sm bg-orange-800 p-1 text-xs font-medium text-white"
+          title={message.retry}
         >
           {message.content}
         </div>
@@ -97,7 +98,7 @@ moveTo(room="name_of_the_room")
           class="mb-1 max-w-fit rounded-sm text-xs text-white {message.toolCallFailed
             ? 'bg-amber-700'
             : 'bg-teal-700'} px-2 py-1 leading-snug font-medium"
-          title={message.content}
+          title={message.content || message.retry}
         >
           {message.toolCall?.action}({JSON.stringify(
             message.toolCall?.parameters,

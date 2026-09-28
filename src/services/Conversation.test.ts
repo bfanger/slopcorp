@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Conversation } from "./Conversation.svelte";
 
 describe("Conversation", () => {
@@ -48,7 +48,22 @@ describe("Conversation", () => {
 
     const chat = new Conversation("", [createDummyWeatherTool()], createLLM);
     const prompt = "What's the weather in Groningen?";
+    const warn = vi.fn();
+    vi.spyOn(console, "warn").mockImplementation(warn);
+
     await chat.prompt(prompt);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toBe(
+      'Failed to process LLM response:\n```tool_code\ngetWeather(location="Groningen")\n```',
+    );
+    expect(warn.mock.calls[0][1]).toEqual({
+      cause: expect.objectContaining({
+        message: expect.stringContaining(
+          'tool "getWeather" was called incorrectly',
+        ),
+      }),
+    });
 
     expect(chat.messages).toMatchInlineSnapshot(`
       [
@@ -58,7 +73,8 @@ describe("Conversation", () => {
         },
         {
           "content": "An error occurred trying, "getWeather({"location":"Groningen"})",
-          "retry": "<error>tool "getWeather" was called incorrectly.
+          "retry": "<error>
+      tool "getWeather" was called incorrectly.
       the parameters don't match the json schema: 
       "data must have required property 'city'
 
@@ -69,15 +85,18 @@ describe("Conversation", () => {
       {"location":"Groningen"}
 
       tool_code format is using Python, example:
-      toolName(parameter="value")</error>",
+      toolName(parameter="value")
+      </error>",
           "role": "error",
         },
         {
-          "content": "Empty response",
-          "role": "error",
+          "content": "undefined
+      ",
+          "role": "assistant",
         },
       ]
     `);
+    vi.restoreAllMocks();
   });
 
   it("passes game events from gameLogic to the LLM", async () => {
@@ -85,25 +104,22 @@ describe("Conversation", () => {
       "```tool_code\ngetWeather(city='Groningen')\n```",
       "It's 19 degrees in Groningen.",
     ]);
-    let gameEvent: string | undefined = "The printer issue is fixed!";
     const chat = new Conversation(
       "",
       [createDummyWeatherTool()],
       createLLM,
       () => {
-        const event = gameEvent;
-        gameEvent = undefined;
-        return Promise.resolve(event);
+        return Promise.resolve("[REDACTED]");
       },
     );
     await chat.prompt("What's the weather in Groningen?");
     expect(seenPrompts).toEqual([
       "What's the weather in Groningen?",
-      '<result name="getWeather">{"temperature":19}\nThe printer issue is fixed!</result>',
+      '<result name="getWeather">[REDACTED]</result>',
     ]);
     expect(chat.messages.filter((m) => m.role === "tool")).toEqual([
       {
-        content: '{"temperature":19}\n' + "The printer issue is fixed!",
+        content: "[REDACTED]",
         role: "tool",
         toolCall: {
           action: "getWeather",
