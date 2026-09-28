@@ -22,7 +22,5 @@
     "**/*.js",
     ".*.js"
   ],
-  "exclude": [
-    "dist"
-  ]
+  "exclude": ["dist"]
 }

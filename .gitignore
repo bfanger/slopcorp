@@ -2,3 +2,5 @@
 node_modules
 dist/
 .svelte-check
+src/assets/.tmp/
+blender-files/*.blend1

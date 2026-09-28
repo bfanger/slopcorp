@@ -9,3 +9,12 @@ It also has a Svelte & Tailwind to render the chat interface
 ├─ node_modules/  # Dependencies
 └─ src/           # Source code
 ```
+
+### Blender MCP
+
+- Blender is running on Windows, but we are inside a docker container
+- In the container `/app/slopcorp/blender-files/` is mounted to `C:\Users\bfang\Projects\slopcorp\blender-files` on windows.
+- The get_viewport_screenshot tool doesn't work
+- Save images with the Windows path (e.g. `C:/Users/bfang/Projects/slopcorp/blender-files/verify.png`)
+- Verify results by rendering (`bpy.ops.render.render(write_still=True)` with a Windows-path `render.filepath`)
+- Don't use the analyze_image tool, use the read tool, you are a vision model, if not ask the user to switch to the Vision model.
