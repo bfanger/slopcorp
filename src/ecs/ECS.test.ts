@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import ECS, { createLocation, type Hooks } from "./ECS";
+import ECS, { createLocation } from "./ECS";
 import { inventory } from "./Entity";
 
 function createDungeon() {
@@ -58,8 +58,24 @@ describe("ECS dungeon room", () => {
 
   it("rejects moving to an unknown location", () => {
     const { ecs } = createDungeon();
+    const movedHook = vi.fn();
+    ecs.hooks.moved = movedHook;
     expect(ecs.tryMove("nowhere")).toBe(false);
     expect(ecs.player.location).toBeUndefined();
+    expect(movedHook).not.toHaveBeenCalled();
+  });
+
+  it("calls the moved hook with the target room when the player moves", () => {
+    const { ecs, dungeon } = createDungeon();
+    const movedHook = vi.fn();
+    ecs.hooks.moved = movedHook;
+    expect(ecs.tryMove(dungeon.name)).toBe(true);
+    expect(ecs.player.location).toBe(dungeon);
+    expect(movedHook).toHaveBeenCalledTimes(1);
+    expect(movedHook).toHaveBeenCalledWith(dungeon);
+    // Moving to the room the player is already in does not fire the hook
+    expect(ecs.tryMove(dungeon.name)).toBe(true);
+    expect(movedHook).toHaveBeenCalledTimes(1);
   });
 
   it("createLocation attaches the same location to every item in the room", () => {

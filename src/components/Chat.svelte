@@ -9,17 +9,20 @@
   } from "../ecs/ecs-tools";
   import { Conversation } from "../services/Conversation.svelte";
   import type ECS from "../ecs/ECS";
+  import type { GameEvent } from "../ecs/ECS";
 
   type Props = {
     startPrompt: string;
-    createLevel: (onSucces: () => void) => ECS;
+    createLevel: (onEvent: (event: GameEvent) => void) => ECS;
   };
   let { startPrompt = "", createLevel }: Props = $props();
   let prompt = $state(untrack(() => startPrompt));
 
+  let gameEvent: GameEvent | undefined;
+
   const ecs = untrack(() =>
-    createLevel(() => {
-      chat.steer("The printer issue is fixed! ");
+    createLevel((e) => {
+      gameEvent = e;
     }),
   );
 
@@ -54,12 +57,30 @@ moveTo(room="name_of_the_room")
       pickUpTool(ecs),
       placeItemTool(ecs),
     ],
+    undefined,
+    () => {
+      if (gameEvent) {
+        const { delay = 0, message } = gameEvent;
+        gameEvent = undefined;
+        return new Promise((resolve) =>
+          setTimeout(() => resolve(message), delay),
+        );
+      }
+      return Promise.resolve(undefined);
+    },
   );
+  let messages = $derived([
+    {
+      role: "assistent",
+      content: "Hi, I am SlopCorp's robot, how can i help you?",
+    },
+    ...chat.messages,
+  ]);
 </script>
 
 <div>
   <div class="flex w-fit min-w-160 flex-col p-1 text-xs">
-    {#each chat.messages as message, i (i)}
+    {#each messages as message, i (i)}
       {#if message.role === "error"}
         <div
           class="max-w-fit rounded-sm bg-orange-800 p-2 font-medium text-white"
@@ -101,6 +122,7 @@ moveTo(room="name_of_the_room")
 >
   <input
     bind:value={prompt}
+    placeholder="Send an instruction to the robot"
     class="grow rounded-l-full border border-gray-700 px-4 py-2"
   />
   <button

@@ -30,6 +30,7 @@ describe("Conversation", () => {
               "city": "Groningen",
             },
           },
+          "toolCallFailed": undefined,
         },
         {
           "content": "It's 19 degrees in Groningen.
@@ -79,12 +80,39 @@ describe("Conversation", () => {
     `);
   });
 
-  it("queues steering messages", () => {
-    const chat = new Conversation("", []);
-    expect(chat.queue).toEqual([]);
-    chat.steer("turn left");
-    chat.steer("watch out");
-    expect(chat.queue).toEqual(["turn left", "watch out"]);
+  it("passes game events from gameLogic to the LLM", async () => {
+    const { createLLM, seenPrompts } = mockLLM([
+      "```tool_code\ngetWeather(city='Groningen')\n```",
+      "It's 19 degrees in Groningen.",
+    ]);
+    let gameEvent: string | undefined = "The printer issue is fixed!";
+    const chat = new Conversation(
+      "",
+      [createDummyWeatherTool()],
+      createLLM,
+      () => {
+        const event = gameEvent;
+        gameEvent = undefined;
+        return Promise.resolve(event);
+      },
+    );
+    await chat.prompt("What's the weather in Groningen?");
+    expect(seenPrompts).toEqual([
+      "What's the weather in Groningen?",
+      '<result name="getWeather">{"temperature":19}\nThe printer issue is fixed!</result>',
+    ]);
+    expect(chat.messages.filter((m) => m.role === "tool")).toEqual([
+      {
+        content: '{"temperature":19}\n' + "The printer issue is fixed!",
+        role: "tool",
+        toolCall: {
+          action: "getWeather",
+          parameters: {
+            city: "Groningen",
+          },
+        },
+      },
+    ]);
   });
 });
 

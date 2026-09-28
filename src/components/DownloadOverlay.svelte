@@ -5,9 +5,11 @@
   };
   let { children }: Props = $props();
 
-  let availability = $state<Availability>();
+  let availability = $state<
+    "unavailable" | "downloadable" | "downloading" | "available"
+  >();
   let progress = $state(0);
-  const options: LanguageModelCreateOptions = {
+  const options: Parameters<typeof LanguageModel.create>[0] = {
     samplingMode: "predictable",
     expectedInputs: [{ type: "text", languages: ["en"] }],
     expectedOutputs: [{ type: "text", languages: ["en"] }],

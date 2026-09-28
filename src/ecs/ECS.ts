@@ -19,6 +19,14 @@ export function createLocation(
 export type Hooks = {
   pickup?: (item: Entity) => void;
   unlocked?: (item: Entity) => void;
+  moved?: (room: Room) => void;
+};
+
+export type GameEvent = {
+  /** Replaces the answer from the the default tool */
+  message?: string;
+  /** Duration of the animation in ms */
+  delay?: number;
 };
 
 /**
@@ -73,7 +81,10 @@ export default class ECS {
     if (!target) {
       return false;
     }
-    this.player.location = target;
+    if (this.player.location?.name !== target.name) {
+      this.player.location = target;
+      this.hooks.moved?.(target);
+    }
     return true;
   }
 

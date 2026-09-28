@@ -22,16 +22,18 @@ export class Conversation {
   private systemPrompt: string;
   private tools: Record<string, LanguageModelTool>;
   private createLLM: typeof LanguageModel.create;
+  private gameLogic: () => Promise<string | undefined>;
   private llm: LanguageModel | undefined;
-  private queue: string[] = [];
 
   constructor(
     systemPrompt: string,
     tools: LanguageModelTool[],
     createLLM?: typeof LanguageModel.create,
+    gameLogic?: () => Promise<string | undefined>,
   ) {
     this.tools = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
     this.createLLM = createLLM ?? ((options) => LanguageModel.create(options));
+    this.gameLogic = gameLogic ?? (() => Promise.resolve(undefined));
     const toolsIntro = `
 
 Available tools:
@@ -62,19 +64,6 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
     previousToolCall?: ToolCall,
     retry = 2,
   ): Promise<void> {
-    if (this.queue.length > 0 && previousToolCall) {
-      const copy = [...this.queue];
-      this.queue = [];
-      message = copy.pop()!;
-      for (const text of copy) {
-        await llm.append(text);
-      }
-      this.messages.push({
-        role: "tool",
-        toolCall: { action: "game event", parameters: {} },
-        content: message,
-      });
-    }
     const response = await llm.prompt(message);
     const [nodes, toolCalls] = stripToolCalls(
       markdownProcessor.parse(response),
@@ -120,11 +109,19 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
           `tool "${toolCall.action}" was called incorrectly.\n${validationError}`,
         );
       }
-      const answer = await tool.execute(params);
+      let answer = await tool.execute(params);
+      const toolCallFailed = (answer as { toolCallFailed?: true })
+        .toolCallFailed;
+      if (!toolCallFailed) {
+        const replacement = await this.gameLogic?.();
+        if (replacement) {
+          answer = replacement;
+        }
+      }
       this.messages.push({
         role: "tool",
         toolCall,
-        toolCallFailed: (answer as { toolCallFailed?: true }).toolCallFailed,
+        toolCallFailed,
         content: answer,
       });
       return this.processPrompt(
@@ -149,10 +146,6 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
       }
       await llm.append([{ role: "user", content: reply }]);
     }
-  }
-
-  steer(message: string) {
-    this.queue.push(message);
   }
 
   async execute<T>(fn: (llm: LanguageModel) => Promise<T>): Promise<T> {

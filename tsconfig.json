@@ -6,7 +6,7 @@
     "verbatimModuleSyntax": true,
     "strict": true,
     "noEmit": true,
-    "types": ["node", "dom-chromium-ai", "vite/client"],
+    "types": ["node", "dom-chromium-ai", "phaser", "vite/client"],
     "allowJs": true,
     "skipLibCheck": true
   },

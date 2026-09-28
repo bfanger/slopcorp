@@ -1,8 +1,13 @@
 <script lang="ts">
-  import { createLevel1 } from "../scenes/Level1";
+  import PrinterScene, { createLevel1 } from "../scenes/PrinterScene";
   import DownloadOverlay from "./DownloadOverlay.svelte";
-  import Game from "./Game.svelte";
+  import Chat from "./Chat.svelte";
+  import type { Game } from "phaser";
 
+  type Props = {
+    game: Game;
+  };
+  let { game }: Props = $props();
   const testPrompts = {
     fix: "Fix the printer issue",
     game: "Play the game",
@@ -11,5 +16,8 @@
 </script>
 
 <DownloadOverlay>
-  <Game startPrompt={testPrompts.paper} createLevel={createLevel1} />
+  <Chat
+    startPrompt={testPrompts.paper}
+    createLevel={createLevel1(game.scene.getScene("printer") as PrinterScene)}
+  />
 </DownloadOverlay>
