@@ -109,21 +109,26 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
           `tool "${toolCall.action}" was called incorrectly.\n${validationError}`,
         );
       }
+      const index =
+        this.messages.push({
+          role: "tool",
+          toolCall,
+          content: "...",
+        }) - 1;
       let answer = await tool.execute(params);
       const toolCallFailed = (answer as { toolCallFailed?: true })
         .toolCallFailed;
+      this.messages[index].toolCallFailed = toolCallFailed;
+      this.messages[index].content = answer;
+
       if (!toolCallFailed) {
         const replacement = await this.gameLogic?.();
         if (replacement) {
           answer = replacement;
+          this.messages[index].content = replacement;
         }
       }
-      this.messages.push({
-        role: "tool",
-        toolCall,
-        toolCallFailed,
-        content: answer,
-      });
+
       return this.processPrompt(
         llm,
         `<result name="${tool.name}">${answer}</result>`,

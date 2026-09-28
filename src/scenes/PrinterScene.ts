@@ -1,7 +1,9 @@
 import Phaser from "phaser";
 import ECS, { createLocation, type GameEvent } from "../ecs/ECS";
 import type { Room } from "../ecs/Entity";
-
+import storageAsset from "../assets/storage.jpg";
+import officeAsset from "../assets/office.jpg";
+import avatarAsset from "../assets/handdrawn/avatar.png";
 export default class PrinterScene extends Phaser.Scene {
   ecs!: ECS;
   private labels: Phaser.GameObjects.Text[] = [];
@@ -14,9 +16,9 @@ export default class PrinterScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("storage", "src/assets/storage.jpg");
-    this.load.image("office", "src/assets/office.jpg");
-    this.load.image("avatar", "src/assets/handdrawn/avatar.png");
+    this.load.image("storage", storageAsset);
+    this.load.image("office", officeAsset);
+    this.load.image("avatar", avatarAsset);
   }
 
   create() {
@@ -46,7 +48,7 @@ export default class PrinterScene extends Phaser.Scene {
     office.setAlpha(0.05);
     this.rooms.push(storage, office);
     const locationsLabel = this.add.text(490, 160, "Locations:", {
-      fontSize: "16px",
+      fontSize: "20px",
     });
     locationsLabel.setOrigin(0, 0.5);
     const officeLabel = this.add.text(490, 195, "office", {
