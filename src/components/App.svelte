@@ -9,6 +9,7 @@
   };
   let { game }: Props = $props();
   const testPrompts = {
+    empty: "",
     fix: "Fix the printer issue",
     game: "Play the game",
     paper: "The printer needs paper",
@@ -17,7 +18,7 @@
 
 <DownloadOverlay>
   <Chat
-    startPrompt={testPrompts.paper}
+    startPrompt={testPrompts.empty}
     createLevel={createLevel1(game.scene.getScene("printer") as PrinterScene)}
   />
 </DownloadOverlay>

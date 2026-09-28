@@ -7,7 +7,7 @@ import type { AnyValidateFunction } from "ajv/dist/core";
 
 const markdownProcessor = unified().use(remarkParse).use(remarkStringify);
 
-type ChatMessage = {
+export type ChatMessage = {
   role: "user" | "assistant" | "tool" | "error";
   content: string;
   toolCall?: ToolCall;
@@ -140,6 +140,7 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
           ? `An error occurred trying, "${toolCall.action}(${JSON.stringify(toolCall.parameters)})`
           : "Invalid tool call",
         retry: retry > 0 ? reply : "",
+        error: err as Error,
       });
       if (retry > 0) {
         return this.processPrompt(llm, reply, previousToolCall, retry - 1);

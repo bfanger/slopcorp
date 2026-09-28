@@ -60,12 +60,13 @@ export default class PrinterScene extends Phaser.Scene {
     this.labels.push(locationsLabel, officeLabel, storageLabel);
     this.roomLabels = { office: officeLabel, storage: storageLabel };
     const avatar = this.add.sprite(
-      this.game.scale.gameSize.width / 2,
+      240,
       this.game.scale.gameSize.height / 2,
       "avatar",
     );
     avatar.setOrigin(0.5, 0.5);
-    avatar.setScale(3);
+    avatar.setScale(4);
+    avatar.texture.setSmoothPixelArt(true);
     this.avatar = avatar;
   }
 
@@ -97,24 +98,62 @@ export default class PrinterScene extends Phaser.Scene {
       roomLabel.setStyle({ fontStyle: name === room.name ? "bold" : "" });
     }
   }
+
+  won() {
+    const current = this.rooms.find((s) => s.alpha > 0);
+    if (current) {
+      this.tweens.add({ targets: current, alpha: 0.3, duration: 1000 });
+    }
+    this.tweens.add({
+      targets: this.avatar,
+      x: 240,
+      y: this.game.scale.gameSize.height / 2,
+      scaleX: 4,
+      scaleY: 4,
+      duration: 400,
+    });
+  }
 }
 
 export function createLevel1(scene: PrinterScene) {
   return (onEvent: (event: GameEvent) => void) =>
     new ECS(
       [
-        ...createLocation("office", [{ name: "printer", locked: "paper" }]),
-        ...createLocation("storage", [{ name: "paper", portable: true }]),
+        ...createLocation("office", [
+          { name: "printer", locked: "paper" },
+          { name: "keyboard" },
+          { name: "monitor" },
+          { name: "mouse" },
+          { name: "penholder" },
+          { name: "pens" },
+          { name: "desk" },
+          { name: "chair" },
+          { name: "plant" },
+          { name: "window" },
+        ]),
+        ...createLocation("storage", [
+          { name: "paper", portable: true },
+          { name: "pens" },
+          { name: "cabinet" },
+          { name: "vendingmachine" },
+        ]),
       ],
       {
         unlocked(item) {
           if (item.name === "printer") {
-            onEvent({ message: "The printer issue is fixed!" });
+            scene.won();
+            onEvent({
+              message: "Level complete! The printer issue is fixed",
+              delay: 1000,
+            });
           }
         },
         moved(room) {
-          onEvent({ delay: 700 });
+          onEvent({ delay: 1500 });
           scene.moveToRoom(room);
+        },
+        pickup() {
+          onEvent({ delay: 1000 });
         },
       },
     );

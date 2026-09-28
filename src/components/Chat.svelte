@@ -7,7 +7,11 @@
     placeItemTool,
     pickUpTool,
   } from "../ecs/ecs-tools";
-  import { Conversation } from "../services/Conversation.svelte";
+  import {
+    Conversation,
+    type ChatMessage,
+  } from "../services/Conversation.svelte";
+  import AutoScroll from "./AutoScroll.svelte";
   import type ECS from "../ecs/ECS";
   import type { GameEvent } from "../ecs/ECS";
 
@@ -69,27 +73,27 @@ moveTo(room="name_of_the_room")
       return Promise.resolve(undefined);
     },
   );
-  let messages = $derived([
+  let messages: ChatMessage[] = $derived([
     {
-      role: "assistent",
+      role: "assistant",
       content: "Hi, I am SlopCorp's robot, how can i help you?",
     },
     ...chat.messages,
   ]);
 </script>
 
-<div>
-  <div class="flex w-fit min-w-160 flex-col p-1 text-xs">
+<AutoScroll count={messages.length}>
+  <div class="flex flex-col">
     {#each messages as message, i (i)}
       {#if message.role === "error"}
         <div
-          class="max-w-fit rounded-sm bg-orange-800 p-2 font-medium text-white"
+          class="mb-1 max-w-fit rounded-sm bg-orange-800 p-1 text-xs font-medium text-white"
         >
           {message.content}
         </div>
       {:else if message.role === "tool"}
         <div
-          class="mb-1 max-w-fit rounded-sm text-white {message.toolCallFailed
+          class="mb-1 max-w-fit rounded-sm text-xs text-white {message.toolCallFailed
             ? 'bg-amber-700'
             : 'bg-teal-700'} px-2 py-1 leading-snug font-medium"
           title={message.content}
@@ -100,7 +104,7 @@ moveTo(room="name_of_the_room")
         </div>
       {:else}
         <pre
-          class={`mb-4 max-w-md rounded-2xl px-4 py-2 font-sans whitespace-pre-wrap ${
+          class={`mb-4 min-h-7 max-w-md rounded-2xl px-4 py-2 font-sans whitespace-pre-wrap ${
             message.role === "user"
               ? "ml-4 self-end rounded-br-xs bg-[#0b84ff] text-white"
               : "mr-4 self-start rounded-tl-xs bg-[#e9e9eb] text-black"
@@ -109,11 +113,11 @@ moveTo(room="name_of_the_room")
     {/each}
   </div>
   {#if chat.thinking}
-    <div class="animate-pulse p-2 font-medium text-gray-700">Thinking...</div>
+    <div class="animate-pulse p-2 font-bold text-gray-700">Thinking...</div>
   {/if}
-</div>
+</AutoScroll>
 <form
-  class="flex w-160"
+  class="flex p-1"
   onsubmit={(e) => {
     e.preventDefault();
     void chat.prompt(prompt);
@@ -123,11 +127,11 @@ moveTo(room="name_of_the_room")
   <input
     bind:value={prompt}
     placeholder="Send an instruction to the robot"
-    class="grow rounded-l-full border border-gray-700 px-4 py-2"
+    class="grow rounded-l-full border border-r-0 border-gray-700 px-4 py-2"
   />
   <button
     type="submit"
-    class="rounded-r-full bg-[#0b84ff] p-2 px-4 font-medium text-white"
+    class="rounded-r-full bg-[#0b84ff] p-2 pr-3.5 pl-3 font-medium text-white"
   >
     Send
   </button>
