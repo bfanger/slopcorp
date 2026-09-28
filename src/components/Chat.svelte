@@ -76,13 +76,14 @@ moveTo(room="name_of_the_room")
   let messages: ChatMessage[] = $derived([
     {
       role: "assistant",
-      content: "Hi, I am SlopCorp's robot, how can i help you?",
+      content: `Hi, I am SlopCorp's robot, how can i help you?\n\nFor example: "Go to the ${ecs.getRooms()[0].name}"`,
     },
     ...chat.messages,
+    ...(chat.concept ? [chat.concept] : []),
   ]);
 </script>
 
-<AutoScroll count={messages.length}>
+<AutoScroll detect={messages.length + (chat.concept?.content.length ?? 0)}>
   <div class="flex flex-col">
     {#each messages as message, i (i)}
       {#if message.role === "error"}
@@ -104,7 +105,7 @@ moveTo(room="name_of_the_room")
         </div>
       {:else}
         <pre
-          class={`mb-4 min-h-7 max-w-md rounded-2xl px-4 py-2 font-sans whitespace-pre-wrap ${
+          class={`mb-4 min-h-7 max-w-md rounded-2xl px-4 py-2 font-sans leading-snug whitespace-pre-wrap ${
             message.role === "user"
               ? "ml-4 self-end rounded-br-xs bg-imessage-blue text-white"
               : "mr-4 self-start rounded-tl-xs bg-[#e9e9eb] text-black"
@@ -117,7 +118,7 @@ moveTo(room="name_of_the_room")
   {/if}
 </AutoScroll>
 <form
-  class="flex p-1"
+  class="flex py-3"
   onsubmit={(e) => {
     e.preventDefault();
     void chat.prompt(prompt);
@@ -127,7 +128,7 @@ moveTo(room="name_of_the_room")
   <input
     bind:value={prompt}
     placeholder="Send an instruction to the robot"
-    class="grow rounded-l-full border border-r-0 border-gray-700 px-4 py-2"
+    class="grow rounded-l-full border-2 border-r-0 border-gray-400 bg-white px-4 py-2 text-black outline-none focus:border-imessage-blue"
   />
   <button
     type="submit"

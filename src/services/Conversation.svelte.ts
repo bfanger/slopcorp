@@ -19,6 +19,7 @@ export type ChatMessage = {
 export class Conversation {
   thinking = $state(false);
   messages = $state<ChatMessage[]>([]);
+  concept = $state<ChatMessage>();
   private systemPrompt: string;
   private tools: Record<string, LanguageModelTool>;
   private createLLM: typeof LanguageModel.create;
@@ -64,7 +65,14 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
     previousToolCall?: ToolCall,
     retry = 2,
   ): Promise<void> {
-    const response = await llm.prompt(message);
+    let response = "";
+    this.concept = { role: "assistant", content: "" };
+    for await (const chunk of llm.promptStreaming(message)) {
+      response += chunk;
+      const pos = response.indexOf("```");
+      this.concept.content = pos === -1 ? response : response.substring(0, pos);
+    }
+
     const [nodes, toolCalls] = stripToolCalls(
       markdownProcessor.parse(response),
     );
@@ -74,6 +82,7 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
         content: markdownProcessor.stringify(nodes),
       });
     }
+    this.concept = undefined;
 
     if (toolCalls.length === 0) {
       if (nodes.children.length === 0) {

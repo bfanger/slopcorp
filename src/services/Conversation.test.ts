@@ -120,9 +120,15 @@ function mockLLM(responses: string[]) {
   const seenPrompts: string[] = [];
   const createLLM = () =>
     Promise.resolve({
-      prompt: (message: string) => {
+      promptStreaming: (message: string) => {
         seenPrompts.push(message);
-        return Promise.resolve(responses.shift()!);
+        const response = responses.shift()!;
+        return new ReadableStream<string>({
+          start(controller) {
+            controller.enqueue(response);
+            controller.close();
+          },
+        });
       },
       append: () => Promise.resolve(undefined),
     }) as unknown as Promise<LanguageModel>;
