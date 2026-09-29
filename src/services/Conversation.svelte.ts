@@ -3,6 +3,7 @@ import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import parseToolCall, { type ToolCall } from "./parseToolCall";
+import type { ToolResponse, ToolStatus } from "../ecs/ecs-tools";
 import type { AnyValidateFunction } from "ajv/dist/core";
 
 const markdownProcessor = unified().use(remarkParse).use(remarkStringify);
@@ -11,7 +12,7 @@ export type ChatMessage = {
   role: "user" | "assistant" | "tool" | "error";
   content: string;
   toolCall?: ToolCall;
-  toolCallFailed?: boolean;
+  toolStatus?: ToolStatus;
   retry?: string;
 };
 
@@ -43,7 +44,7 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
     this.systemPrompt = systemPrompt + toolsIntro;
   }
 
-  async prompt(message: string) {
+  async prompt(message: string, options: { signal: AbortSignal }) {
     if (this.thinking) {
       throw new Error("Queuing prompts not yet supported");
     }
@@ -53,7 +54,9 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
       content: message,
     });
     try {
-      await this.execute((llm) => this.processPrompt(llm, message));
+      await this.execute((llm) =>
+        this.processPrompt(llm, message, options.signal, 2),
+      );
     } finally {
       this.thinking = false;
     }
@@ -61,15 +64,28 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
   private async processPrompt(
     llm: LanguageModel,
     message: string,
+    signal: AbortSignal,
+    retry: number,
     previousToolCall?: ToolCall,
-    retry = 2,
   ): Promise<void> {
     let response = "";
     this.concept = { role: "assistant", content: "" };
-    for await (const chunk of llm.promptStreaming(message)) {
-      response += chunk;
-      const pos = response.indexOf("```");
-      this.concept.content = pos === -1 ? response : response.substring(0, pos);
+    try {
+      for await (const chunk of llm.promptStreaming(message, { signal })) {
+        response += chunk;
+        const pos = response.indexOf("```");
+        this.concept.content =
+          pos === -1 ? response : response.substring(0, pos);
+      }
+    } catch (err) {
+      this.concept = undefined;
+      this.messages.push({
+        role: "error",
+        content: signal.aborted
+          ? "Cancelled"
+          : `Streaming failed: ${(err as Error).message ?? "Unknown error"}`,
+      });
+      return;
     }
 
     const [nodes, toolCalls] = stripToolCalls(
@@ -123,13 +139,12 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
           toolCall,
           content: "...",
         }) - 1;
-      let answer = await tool.execute(params);
-      const toolCallFailed = (answer as { toolCallFailed?: true })
-        .toolCallFailed;
-      this.messages[index].toolCallFailed = toolCallFailed;
+      const result = (await tool.execute(params)) as ToolResponse;
+      this.messages[index].toolStatus = result.toolStatus;
+      let answer: string = result;
       this.messages[index].content = answer;
 
-      if (!toolCallFailed) {
+      if (result.toolStatus !== "failed") {
         const replacement = await this.gameLogic?.();
         if (replacement) {
           answer = replacement;
@@ -140,6 +155,8 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
       return this.processPrompt(
         llm,
         `<result name="${tool.name}">${answer}</result>`,
+        signal,
+        retry,
         toolCall,
       );
     } catch (err) {
@@ -155,9 +172,15 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
         retry: retry > 0 ? reply : "",
       });
       if (retry > 0) {
-        return this.processPrompt(llm, reply, previousToolCall, retry - 1);
+        return this.processPrompt(
+          llm,
+          reply,
+          signal,
+          retry - 1,
+          previousToolCall,
+        );
       }
-      await llm.append([{ role: "user", content: reply }]);
+      await llm.append([{ role: "user", content: reply }], { signal });
     }
   }
 

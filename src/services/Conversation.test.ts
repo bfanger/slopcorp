@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { Conversation } from "./Conversation.svelte";
 
+const signal = new AbortController().signal;
+
 describe("Conversation", () => {
   it("executes the getWeather tool and returns the assistant's answer", async () => {
     const { createLLM, seenPrompts } = mockLLM([
@@ -10,7 +12,7 @@ describe("Conversation", () => {
 
     const chat = new Conversation("", [createDummyWeatherTool()], createLLM);
     const prompt = "Temperature in Groningen?";
-    await chat.prompt(prompt);
+    await chat.prompt(prompt, { signal });
     expect(seenPrompts).toEqual([
       prompt,
       '<result name="getWeather">{"temperature":19}</result>',
@@ -30,7 +32,7 @@ describe("Conversation", () => {
               "city": "Groningen",
             },
           },
-          "toolCallFailed": undefined,
+          "toolStatus": undefined,
         },
         {
           "content": "It's 19 degrees in Groningen.
@@ -51,7 +53,7 @@ describe("Conversation", () => {
     const warn = vi.fn();
     vi.spyOn(console, "warn").mockImplementation(warn);
 
-    await chat.prompt(prompt);
+    await chat.prompt(prompt, { signal });
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls[0][0]).toBe(
@@ -112,7 +114,7 @@ describe("Conversation", () => {
         return Promise.resolve("[REDACTED]");
       },
     );
-    await chat.prompt("What's the weather in Groningen?");
+    await chat.prompt("What's the weather in Groningen?", { signal });
     expect(seenPrompts).toEqual([
       "What's the weather in Groningen?",
       '<result name="getWeather">[REDACTED]</result>',

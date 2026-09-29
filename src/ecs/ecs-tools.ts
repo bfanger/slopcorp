@@ -1,11 +1,13 @@
 import type ECS from "./ECS";
 
-const success = (message: string): Promise<string> => Promise.resolve(message);
-const fail = (message: string): Promise<string> => {
-  const object = new String(message) as string & { toolCallFailed: true };
-  object.toolCallFailed = true;
+export type ToolStatus = "failed" | "normal" | "success";
+export type ToolResponse = string & { toolStatus: ToolStatus };
+
+function respond(status: ToolStatus, message: string): Promise<ToolResponse> {
+  const object = new String(message) as string & { toolStatus: ToolStatus };
+  object.toolStatus = status;
   return Promise.resolve(object);
-};
+}
 
 export function getRoomsTool(ecs: ECS): LanguageModelTool {
   return {
@@ -16,7 +18,10 @@ export function getRoomsTool(ecs: ECS): LanguageModelTool {
       additionalProperties: false,
     },
     execute: () =>
-      success(`Rooms:${ecs.list(ecs.getRooms().map((room) => room.name))}`),
+      respond(
+        "normal",
+        `Rooms:${ecs.list(ecs.getRooms().map((room) => room.name))}`,
+      ),
   };
 }
 
@@ -37,24 +42,27 @@ export function moveToTool(ecs: ECS): LanguageModelTool {
     execute: ({ room: name }: { room: string }) => {
       const previous = ecs.player.location;
       if (!ecs.tryMove(name)) {
-        return fail(
+        return respond(
+          "failed",
           `Room "${name}" not found, use the getRooms() tool to get available rooms`,
         );
       }
       const room = ecs.player.location!;
-      const alreadyThere = previous === room;
+      const moved = previous !== room;
       const items = ecs.entities.filter(
         (entity) => entity.location === room && entity.discovered !== false,
       );
       if (items.length === 0) {
-        return success(
+        return respond(
+          "normal",
           `The location "${room.name}" is empty, nothing to do here`,
         );
       }
-      const intro = alreadyThere
-        ? `In ${room.name}`
-        : `You are now in ${room.name} and `;
-      return success(
+      const intro = moved
+        ? `You are now in ${room.name} and `
+        : `In ${room.name}`;
+      return respond(
+        "normal",
         `${intro} you can see:${ecs.list(
           items.map((item) => item.name),
           `The ${room.name} is empty`,
@@ -73,7 +81,8 @@ export function getInventoryTool(ecs: ECS): LanguageModelTool {
     execute: () => {
       const items = ecs.getInventory();
 
-      return success(
+      return respond(
+        "normal",
         `You have ${items.length} items in your inventory:${ecs.list(
           items.map((item) => item.name),
           "inventory is empty",
@@ -100,12 +109,13 @@ export function pickUpTool(ecs: ECS): LanguageModelTool {
     },
     execute: ({ item }: { item: string }) => {
       if (ecs.tryPickUp(item)) {
-        return success(`You took the ${item}`);
+        return respond("success", `You took the ${item}`);
       }
       if (ecs.findInRoom(item)) {
-        return fail(`${item} can not be picked up.`);
+        return respond("failed", `${item} can not be picked up.`);
       }
-      return fail(
+      return respond(
+        "failed",
         "That item does not exist in this room, only use names of items you've discovered inside the rooms they are placed",
       );
     },
@@ -135,19 +145,21 @@ export function placeItemTool(ecs: ECS): LanguageModelTool {
     },
     execute: ({ item, target }: { item: string; target: string }) => {
       if (ecs.tryPlaceItem(item, target)) {
-        return success(`You've successfully placed the item`);
+        return respond("success", `You've successfully placed the item`);
       }
       if (!ecs.findInInventory(item)) {
-        return fail(
+        return respond(
+          "failed",
           `You don't have a "${item}" in your inventory, use the getInventory() tool to see what you're carrying`,
         );
       }
       if (!ecs.findInRoom(target)) {
-        return fail(
+        return respond(
+          "failed",
           `The item "${target}" is not in this room, you are in the "${ecs.player.location?.name}" room or the item doesn't exist, only use names of items you've discovered`,
         );
       }
-      return fail(`The ${item} does not fit the ${target}`);
+      return respond("failed", `The ${item} does not fit the ${target}`);
     },
   };
 }

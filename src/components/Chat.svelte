@@ -23,6 +23,7 @@
   let prompt = $state(untrack(() => startPrompt));
 
   let gameEvent: GameEvent | undefined;
+  let input: HTMLInputElement | undefined;
 
   const ecs = untrack(() =>
     createLevel((e) => {
@@ -38,9 +39,10 @@ The robot is owned by the SlopCorp company.
 Your goal is to help the user achieve its goal by calling by using the available tools.
 When the user is asking for information, use the information you've gathered with tools and give a clear answer.
 
-- Before calling a tool describe the goal of that action without mentioning the name of the tool itself
+- Before calling a tool describe the goal of that action friendly but succinctly without mentioning the name of the tool itself
 - Don't make the exact same toolcall you've made in the previous message.
 - tool_code format is using Python, for example: toolName(parameter="value")
+- When describing action, use regular language, for example instead of "I can use the pickUp tool" say "I can pick up a item", 
 
 Syntax examples of tool calls:
 
@@ -73,6 +75,7 @@ moveTo(room="name_of_the_room")
       return Promise.resolve(undefined);
     },
   );
+  let controller = new AbortController();
   let messages: ChatMessage[] = $derived([
     {
       role: "assistant",
@@ -83,19 +86,32 @@ moveTo(room="name_of_the_room")
   ]);
 </script>
 
-<AutoScroll detect={messages.length + (chat.concept?.content.length ?? 0)}>
+<svelte:window
+  on:keydown={(e) => {
+    if (e.key === "Escape") {
+      controller.abort();
+    }
+  }}
+/>
+
+<AutoScroll
+  detect={messages.length +
+    (chat.concept?.content.length ?? 0) +
+    (chat.thinking ? 1 : 0)}
+>
   <div class="flex flex-col">
     {#each messages as message, i (i)}
       {#if message.role === "error"}
         <div
-          class="mb-1 max-w-fit rounded-sm bg-orange-800 p-1 text-xs font-medium text-white"
+          class="mb-1 max-w-fit rounded-sm bg-orange-800 px-2 py-1 text-xs font-medium text-white"
           title={message.retry}
         >
           {message.content}
         </div>
       {:else if message.role === "tool"}
         <div
-          class="mb-1 max-w-fit rounded-sm text-xs text-white {message.toolCallFailed
+          class="mb-1 max-w-fit rounded-sm text-xs text-white {message.toolStatus ===
+          'failed'
             ? 'bg-amber-700'
             : 'bg-teal-700'} px-2 py-1 leading-snug font-medium"
           title={message.content || message.retry}
@@ -114,7 +130,7 @@ moveTo(room="name_of_the_room")
       {/if}
     {/each}
   </div>
-  {#if chat.thinking}
+  {#if chat.thinking && (!chat.concept || chat.concept.content === "")}
     <div class="animate-pulse p-2 font-bold text-gray-700">Thinking...</div>
   {/if}
 </AutoScroll>
@@ -122,18 +138,24 @@ moveTo(room="name_of_the_room")
   class="flex py-3"
   onsubmit={(e) => {
     e.preventDefault();
-    void chat.prompt(prompt);
+    controller.abort();
+    controller = new AbortController();
+    void chat.prompt(prompt, { signal: controller.signal });
     prompt = "";
+    input?.focus();
   }}
 >
+  <!-- svelte-ignore a11y_autofocus -->
   <input
+    bind:this={input}
     bind:value={prompt}
+    autofocus
     placeholder="Send an instruction to the robot"
     class="grow rounded-l-full border-2 border-r-0 border-gray-400 bg-white px-4 py-2 text-black outline-none focus:border-imessage-blue"
   />
   <button
     type="submit"
-    class="rounded-r-full bg-imessage-blue p-2 pr-3.5 pl-3 font-medium text-white"
+    class="cursor-pointer rounded-r-full bg-imessage-blue p-2 pr-3.5 pl-3 font-medium text-white"
   >
     Send
   </button>
