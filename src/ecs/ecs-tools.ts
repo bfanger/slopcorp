@@ -31,6 +31,7 @@ export function travelToTool(ecs: ECS): LanguageModelTool {
     description: 'Go to a room. Example: travelTo(room="name_of_the_room")',
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         room: {
           type: "string",
@@ -63,10 +64,7 @@ export function travelToTool(ecs: ECS): LanguageModelTool {
         : `In ${room.name}`;
       return respond(
         "normal",
-        `${intro} you can see:${ecs.list(
-          items.map((item) => item.name),
-          `The ${room.name} is empty`,
-        )}`,
+        `${intro} you can see the following items:${ecs.list(items.map((item) => item.name))}`,
       );
     },
   };
@@ -77,7 +75,10 @@ export function getInventoryTool(ecs: ECS): LanguageModelTool {
     name: "getInventory",
     description:
       "Get a list of items you are carrying in your inventory. Example: getInventory()",
-    inputSchema: { type: "object", additionalProperties: false },
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+    },
     execute: () => {
       const items = ecs.getInventory();
 
@@ -99,6 +100,7 @@ export function pickUpTool(ecs: ECS): LanguageModelTool {
       'Pick up an item from your current location and places it into your inventory. Example: pickUp(item="name_of_the_item")',
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         item: {
           type: "string",
@@ -112,7 +114,10 @@ export function pickUpTool(ecs: ECS): LanguageModelTool {
         return respond("success", `You took the ${item}`);
       }
       if (ecs.findInRoom(item)) {
-        return respond("failed", `${item} can not be picked up.`);
+        return respond(
+          "failed",
+          `Unable to take the ${item}, there is no need to carry that`,
+        );
       }
       return respond(
         "failed",
@@ -121,14 +126,14 @@ export function pickUpTool(ecs: ECS): LanguageModelTool {
     },
   };
 }
-
 export function lookAtTool(ecs: ECS): LanguageModelTool {
   return {
     name: "lookAt",
     description:
-      'Look at an item in your inventory or the current room to get more information about that item. Example: lookAt(item="name_of_the_item")',
+      'Inspects the item in the current room to get more information about that item. The user must have specified the item directly and you must explain why you want to look at the item before calling the tool. Never call lookAt on several items in a row to survey a room. Example: lookAt(item="name_of_the_item")',
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         item: {
           type: "string",
@@ -164,6 +169,7 @@ export function placeItemTool(ecs: ECS): LanguageModelTool {
       'Place an item from your inventory onto a item in your current room. Example: placeItem(item="name_of_the_item_in_inventory",target="name_of_the_target_item")',
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         item: {
           type: "string",

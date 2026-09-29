@@ -4,12 +4,16 @@ import type { Room } from "../ecs/Entity";
 import storageAsset from "../assets/storage.jpg";
 import officeAsset from "../assets/office.jpg";
 import avatarAsset from "../assets/handdrawn/avatar.png";
+import WarningGraphic from "../objects/WarningGraphic";
+
 export default class PrinterScene extends Phaser.Scene {
   ecs!: ECS;
   private labels: Phaser.GameObjects.Text[] = [];
   private rooms: Phaser.GameObjects.Sprite[] = [];
   private roomLabels: Record<string, Phaser.GameObjects.Text> = {};
   private avatar!: Phaser.GameObjects.Sprite;
+  private warning!: WarningGraphic;
+  private printerFixed = false;
 
   constructor() {
     super("printer");
@@ -19,6 +23,7 @@ export default class PrinterScene extends Phaser.Scene {
     this.load.image("storage", storageAsset);
     this.load.image("office", officeAsset);
     this.load.image("avatar", avatarAsset);
+    WarningGraphic.preload(this);
   }
 
   create() {
@@ -36,6 +41,9 @@ export default class PrinterScene extends Phaser.Scene {
     this.rooms = [];
     if (this.avatar) {
       this.avatar.destroy();
+    }
+    if (this.warning) {
+      this.warning.destroy();
     }
     const displayH = this.game.scale.gameSize.height;
     const storage = this.add.sprite(0, 0, "storage");
@@ -70,6 +78,10 @@ export default class PrinterScene extends Phaser.Scene {
     avatar.setScale(4);
     avatar.texture.setSmoothPixelArt(true);
     this.avatar = avatar;
+    const warning = new WarningGraphic(this, 80, 220);
+    this.add.existing(warning);
+    warning.startWobble();
+    this.warning = warning;
   }
 
   moveToRoom(room: Room) {
@@ -84,6 +96,13 @@ export default class PrinterScene extends Phaser.Scene {
         duration: 400,
         delay: 250,
       });
+    }
+    if (this.warning) {
+      if (room.name === "office" && !this.printerFixed) {
+        this.warning.show();
+      } else {
+        this.warning.hide();
+      }
     }
     const label = this.roomLabels[room.name];
     if (label) {
@@ -102,6 +121,8 @@ export default class PrinterScene extends Phaser.Scene {
   }
 
   won() {
+    this.printerFixed = true;
+    this.warning?.stopAndHide();
     const current = this.rooms.find((s) => s.alpha > 0);
     if (current) {
       this.tweens.add({ targets: current, alpha: 0.3, duration: 1000 });
@@ -114,6 +135,23 @@ export default class PrinterScene extends Phaser.Scene {
       scaleY: 4,
       duration: 400,
     });
+    const victory = this.add.text(
+      this.game.scale.gameSize.width / 2,
+      20,
+      "Mission successful!",
+      {
+        fontSize: "48px",
+        fontStyle: "bold",
+        align: "center",
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 4,
+      },
+    );
+    victory.setOrigin(0.5, 0);
+    victory.setAlpha(0);
+    this.tweens.add({ targets: victory, alpha: 1, duration: 600 });
+    this.labels.push(victory);
   }
 }
 

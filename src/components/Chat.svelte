@@ -43,7 +43,8 @@ When the user is asking for information, use the information you've gathered wit
 - Before calling a tool describe the goal of that action friendly but succinctly without mentioning the name of the tool itself
 - Don't make the exact same toolcall you've made in the previous message.
 - tool_code format is using Python, for example: toolName(parameter="value")
-- When describing action, use regular language, for example instead of "I can use the pickUp tool" say "I can pick up a item", 
+- When describing action, use regular language, for example instead of "I can use the pickUp tool" say "I can pick up a item"
+- Only call tools when they are relevant to the user's prompt
 
 Syntax examples of tool calls:
 
@@ -81,7 +82,7 @@ travelTo(room="name_of_the_room")
   let messages: ChatMessage[] = $derived([
     {
       role: "assistant",
-      content: `Hi, I am SlopCorp's robot, how can i help you?\n\nSay for example: "Go to the ${ecs.getRooms()[0].name}"`,
+      content: `Hi 👋,\nI'm a robot from SlopCorp — How can i help you?\n\nSay for example: "Go to the ${ecs.getRooms()[0].name}"`,
     },
     ...chat.messages,
     ...(chat.concept ? [chat.concept] : []),
@@ -152,7 +153,9 @@ travelTo(room="name_of_the_room")
     bind:this={input}
     bind:value={prompt}
     autofocus
-    placeholder="Send an instruction to the robot"
+    placeholder={chat.thinking
+      ? "Press ESC to cancel"
+      : "Send an instruction to the robot"}
     class="grow rounded-l-full border-2 border-r-0 border-gray-400 bg-white px-4 py-2 text-black outline-none focus:border-imessage-blue"
   />
   <button
