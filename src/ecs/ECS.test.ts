@@ -6,11 +6,11 @@ function createDungeon() {
   const ecs = new ECS(
     createLocation("dungeon", [
       // the chest sits on the dungeon floor and can only be opened with the key
-      { name: "chest", locked: "key" },
+      { name: "chest", locked: "key", description: "Chest" },
       // the key lies on the dungeon floor and can be picked up
-      { name: "key", portable: true },
+      { name: "key", portable: true, description: "Key" },
       // the treasure inside the chest has not been discovered yet
-      { name: "treasure", discovered: false },
+      { name: "treasure", discovered: false, description: "Treasure" },
     ]),
     {
       unlocked: (item) => {
@@ -80,8 +80,8 @@ describe("ECS dungeon room", () => {
 
   it("createLocation attaches the same location to every item in the room", () => {
     const entities = createLocation("dungeon", [
-      { name: "chest", locked: "key" },
-      { name: "key", portable: true },
+      { name: "chest", locked: "key", description: "Chest" },
+      { name: "key", portable: true, description: "Key" },
     ]);
     expect(entities).toHaveLength(2);
     expect(entities[0].location).toBe(entities[1].location);
@@ -118,5 +118,46 @@ describe("ECS dungeon room", () => {
     expect(key.location).toBe(inventory);
     expect(chest.locked).toBeUndefined();
     expect(treasure.discovered).toBeTruthy();
+  });
+
+  it("looks at items in the room and in inventory, and fails for unknown items", () => {
+    const { ecs, dungeon } = createDungeon();
+
+    // Can't look at items while not in their room
+    expect(ecs.tryLookAt("key")).toBe(false);
+
+    ecs.tryMove(dungeon.name);
+    expect(ecs.tryLookAt("key")).toBe("Key");
+    expect(ecs.tryLookAt("chest")).toBe("Chest");
+
+    // Undiscovered items can't be looked at
+    expect(ecs.tryLookAt("treasure")).toBe(false);
+
+    // Unknown items fail
+    expect(ecs.tryLookAt("nope")).toBe(false);
+
+    // Picked-up items can be looked at from inventory
+    expect(ecs.tryPickUp("key")).toBe(true);
+    expect(ecs.tryLookAt("key")).toBe("Key");
+  });
+
+  it("resolves dynamic descriptions when looking at", () => {
+    const ecs = new ECS(
+      createLocation("lab", [
+        {
+          name: "lamp",
+          description: (e) =>
+            e.findInInventory("battery")
+              ? "The lamp is switched on"
+              : "The lamp is off",
+        },
+        { name: "battery", portable: true, description: "Battery" },
+      ]),
+    );
+
+    ecs.tryMove("lab");
+    expect(ecs.tryLookAt("lamp")).toBe("The lamp is off");
+    expect(ecs.tryPickUp("battery")).toBe(true);
+    expect(ecs.tryLookAt("lamp")).toBe("The lamp is switched on");
   });
 });

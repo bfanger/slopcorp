@@ -3,9 +3,10 @@
   import {
     getInventoryTool,
     getRoomsTool,
-    moveToTool,
+    lookAtTool,
     placeItemTool,
     pickUpTool,
+    travelToTool,
   } from "../ecs/ecs-tools";
   import {
     Conversation,
@@ -51,16 +52,17 @@ getRooms()
 \`\`\`
 
 \`\`\`tool_code
-moveTo(room="name_of_the_room")
+travelTo(room="name_of_the_room")
 \`\`\`
 
 
 `,
     [
       getRoomsTool(ecs),
-      moveToTool(ecs),
+      travelToTool(ecs),
       getInventoryTool(ecs),
       pickUpTool(ecs),
+      lookAtTool(ecs),
       placeItemTool(ecs),
     ],
     undefined,
@@ -79,7 +81,7 @@ moveTo(room="name_of_the_room")
   let messages: ChatMessage[] = $derived([
     {
       role: "assistant",
-      content: `Hi, I am SlopCorp's robot, how can i help you?\n\nFor example: "Go to the ${ecs.getRooms()[0].name}"`,
+      content: `Hi, I am SlopCorp's robot, how can i help you?\n\nSay for example: "Go to the ${ecs.getRooms()[0].name}"`,
     },
     ...chat.messages,
     ...(chat.concept ? [chat.concept] : []),
@@ -125,7 +127,7 @@ moveTo(room="name_of_the_room")
           class={`mb-4 min-h-7 max-w-md rounded-2xl px-4 py-2 font-sans leading-snug whitespace-pre-wrap ${
             message.role === "user"
               ? "ml-4 self-end rounded-br-xs bg-imessage-blue text-white"
-              : "mr-4 self-start rounded-tl-xs bg-[#e9e9eb] text-black"
+              : "mr-4 self-start rounded-tl-xs bg-[#e9e9eb] text-sm text-black"
           }`}>{message.content}</pre>
       {/if}
     {/each}

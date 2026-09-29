@@ -95,6 +95,17 @@ export default class ECS {
     );
   }
 
+  /** Look at an item in the current room or inventory and return its description */
+  tryLookAt(item: string): string | false {
+    const entity = this.findInRoom(item) ?? this.findInInventory(item);
+    if (!entity) {
+      return false;
+    }
+    return typeof entity.description === "string"
+      ? entity.description
+      : entity.description(this);
+  }
+
   /** Items currently held in the player's inventory */
   getInventory(): Entity[] {
     return this.entities.filter((entity) => entity.location === inventory);

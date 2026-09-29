@@ -122,22 +122,44 @@ export function createLevel1(scene: PrinterScene) {
     new ECS(
       [
         ...createLocation("office", [
-          { name: "printer", locked: "paper" },
-          { name: "keyboard" },
-          { name: "monitor" },
-          { name: "mouse" },
-          { name: "penholder" },
-          { name: "pens" },
-          { name: "desk" },
-          { name: "chair" },
-          { name: "plant" },
-          { name: "window" },
+          {
+            name: "printer",
+            description: (ecs) => {
+              if (ecs.getEntity("printer").locked) {
+                return "White all-in-one printer, the display is showing a warning 'Out of paper'";
+              }
+              return "White all-in-one printer with paper trays, in full working order";
+            },
+            locked: "paper",
+          },
+          { name: "keyboard", description: "Black keyboard on a wooden desk" },
+          { name: "monitor", description: "Computer monitor on a wooden desk" },
+          { name: "mouse", description: "Black mouse next to the keyboard" },
+          {
+            name: "penholder",
+            description: "Blue cup holding pens and pencils",
+          },
+          {
+            name: "desk",
+            description:
+              "Mostly empty office desk, on it are a monitor, a keyboard and some pens",
+          },
+          { name: "chair", description: "Black office chair with wheels" },
+          { name: "plant", description: "Potted plant in a terracotta pot" },
+          { name: "window", description: "Window with blinds" },
         ]),
         ...createLocation("storage", [
-          { name: "paper", portable: true },
-          { name: "pens" },
-          { name: "cabinet" },
-          { name: "vendingmachine" },
+          {
+            name: "paper",
+            description: "Stack of paper, suitable for printers",
+            portable: true,
+          },
+          { name: "pens", description: "Box of pens" },
+          { name: "cabinet", description: "Cabinet" },
+          {
+            name: "vendingmachine",
+            description: "Vending machine with assorted snacks",
+          },
         ]),
       ],
       {

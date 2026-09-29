@@ -25,16 +25,16 @@ export function getRoomsTool(ecs: ECS): LanguageModelTool {
   };
 }
 
-export function moveToTool(ecs: ECS): LanguageModelTool {
+export function travelToTool(ecs: ECS): LanguageModelTool {
   return {
-    name: "moveTo",
-    description: 'Move to a room. Example: moveTo(room="name_of_the_room")',
+    name: "travelTo",
+    description: 'Go to a room. Example: travelTo(room="name_of_the_room")',
     inputSchema: {
       type: "object",
       properties: {
         room: {
           type: "string",
-          description: "The name of the room to move to",
+          description: "The name of the room to visit",
         },
       },
       required: ["room"],
@@ -118,6 +118,41 @@ export function pickUpTool(ecs: ECS): LanguageModelTool {
         "failed",
         "That item does not exist in this room, only use names of items you've discovered inside the rooms they are placed",
       );
+    },
+  };
+}
+
+export function lookAtTool(ecs: ECS): LanguageModelTool {
+  return {
+    name: "lookAt",
+    description:
+      'Look at an item in your inventory or the current room to get more information about that item. Example: lookAt(item="name_of_the_item")',
+    inputSchema: {
+      type: "object",
+      properties: {
+        item: {
+          type: "string",
+          description: "The name of the item to look at",
+        },
+      },
+      required: ["item"],
+    },
+    execute: ({ item }: { item: string }) => {
+      const description = ecs.tryLookAt(item);
+      if (description === false) {
+        const rooms = ecs.getRooms();
+        if (rooms.find((room) => room.name === item)) {
+          return respond(
+            "failed",
+            `There is no item called "${item}" here, but there is a room called ${item} did you mean to use the travelTo tool?`,
+          );
+        }
+        return respond(
+          "failed",
+          `There is no item called "${item}" here, only use names of items you've discovered inside the rooms they are placed or in your inventory`,
+        );
+      }
+      return respond("normal", `The ${item}: ${description}`);
     },
   };
 }
