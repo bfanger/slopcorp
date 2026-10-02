@@ -11,10 +11,10 @@ export const game = new Phaser.Game({
   scene: [PrinterScene],
   canvas: document.querySelector("canvas")!,
 });
-
 game.events.on("ready", () => {
   mount(App, {
     target: document.querySelector("svelte-app")!,
     props: { game },
   });
 });
+(globalThis as any).__PHASER_GAME__ = game;

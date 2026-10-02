@@ -20,5 +20,6 @@
   <Chat
     startPrompt={testPrompts.empty}
     createLevel={createLevel1(game.scene.getScene("printer") as PrinterScene)}
+    onstart={() => (game.scene.getScene("printer") as PrinterScene).started()}
   />
 </DownloadOverlay>

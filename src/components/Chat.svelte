@@ -19,9 +19,11 @@
   type Props = {
     startPrompt: string;
     createLevel: (onEvent: (event: GameEvent) => void) => ECS;
+    onstart: () => void;
   };
-  let { startPrompt = "", createLevel }: Props = $props();
+  let { startPrompt = "", createLevel, onstart }: Props = $props();
   let prompt = $state(untrack(() => startPrompt));
+  let started = false;
 
   let gameEvent: GameEvent | undefined;
   let input: HTMLInputElement | undefined;
@@ -78,7 +80,7 @@ travelTo(room="name_of_the_room")
       return Promise.resolve(undefined);
     },
   );
-  let controller = new AbortController();
+  let controller: AbortController | undefined;
   let messages: ChatMessage[] = $derived([
     {
       role: "assistant",
@@ -92,7 +94,7 @@ travelTo(room="name_of_the_room")
 <svelte:window
   on:keydown={(e) => {
     if (e.key === "Escape") {
-      controller.abort();
+      controller?.abort();
     }
   }}
 />
@@ -139,13 +141,27 @@ travelTo(room="name_of_the_room")
 </AutoScroll>
 <form
   class="flex py-3"
-  onsubmit={(e) => {
+  onsubmit={async (e) => {
     e.preventDefault();
-    controller.abort();
+    if (controller) {
+      controller.abort();
+      controller = undefined;
+      return;
+    }
+
     controller = new AbortController();
-    void chat.prompt(prompt, { signal: controller.signal });
+    const signal = controller.signal;
+    if (!started) {
+      onstart();
+      started = false;
+    }
+    const promise = chat.prompt(prompt, { signal });
     prompt = "";
     input?.focus();
+    await promise;
+    if (controller?.signal === signal) {
+      controller = undefined;
+    }
   }}
 >
   <!-- svelte-ignore a11y_autofocus -->

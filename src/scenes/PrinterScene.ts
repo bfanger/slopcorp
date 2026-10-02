@@ -4,6 +4,7 @@ import type { Room } from "../ecs/Entity";
 import storageAsset from "../assets/storage.jpg";
 import officeAsset from "../assets/office.jpg";
 import avatarAsset from "../assets/handdrawn/avatar.png";
+import IntroGraphic from "../objects/IntroGraphic";
 import WarningGraphic from "../objects/WarningGraphic";
 
 export default class PrinterScene extends Phaser.Scene {
@@ -12,6 +13,7 @@ export default class PrinterScene extends Phaser.Scene {
   private rooms: Phaser.GameObjects.Sprite[] = [];
   private roomLabels: Record<string, Phaser.GameObjects.Text> = {};
   private avatar!: Phaser.GameObjects.Sprite;
+  private intro!: IntroGraphic;
   private warning!: WarningGraphic;
   private printerFixed = false;
 
@@ -23,6 +25,7 @@ export default class PrinterScene extends Phaser.Scene {
     this.load.image("storage", storageAsset);
     this.load.image("office", officeAsset);
     this.load.image("avatar", avatarAsset);
+    IntroGraphic.preload(this);
     WarningGraphic.preload(this);
   }
 
@@ -41,6 +44,9 @@ export default class PrinterScene extends Phaser.Scene {
     this.rooms = [];
     if (this.avatar) {
       this.avatar.destroy();
+    }
+    if (this.intro) {
+      this.intro.destroy();
     }
     if (this.warning) {
       this.warning.destroy();
@@ -78,10 +84,19 @@ export default class PrinterScene extends Phaser.Scene {
     avatar.setScale(4);
     avatar.texture.setSmoothPixelArt(true);
     this.avatar = avatar;
+    const intro = new IntroGraphic(this, 240, 240, 0.36);
+    this.add.existing(intro);
+    this.intro = intro;
     const warning = new WarningGraphic(this, 80, 220);
     this.add.existing(warning);
     warning.startWobble();
     this.warning = warning;
+  }
+
+  started() {
+    if (!this.intro.isDestroyed) {
+      this.intro.outro();
+    }
   }
 
   moveToRoom(room: Room) {
