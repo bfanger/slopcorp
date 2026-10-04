@@ -25,9 +25,9 @@ void main()
 `;
 
 export default class IntroGraphic extends Phaser.GameObjects.Shader {
-  private dissolve = { p: -1 };
+  private dissolve = { p: 0 };
 
-  constructor(scene: Phaser.Scene, x: number, y: number, scale: number) {
+  constructor(scene: Phaser.Scene) {
     const tex = scene.textures.get("intro");
     super(
       scene,
@@ -40,23 +40,23 @@ export default class IntroGraphic extends Phaser.GameObjects.Shader {
           setUniform("uProgress", this.dissolve.p);
         },
       },
-      x,
-      y,
+      500,
+      480,
       tex.getSourceImage().width,
       tex.getSourceImage().height,
       ["intro", "dissolveNoise"],
     );
-    this.setOrigin(0.5, 0.5);
-    this.setScale(scale);
+    this.setScale(0.84);
     this.setDepth(1000);
   }
 
   outro() {
-    this.dissolve.p = -1;
+    this.dissolve.p = 0;
     this.scene.tweens.add({
       targets: this.dissolve,
+      ease: "Linear",
       p: 1,
-      duration: 1400,
+      duration: 1500,
       onComplete: () => {
         this.destroy();
       },

@@ -12,14 +12,12 @@ function createDungeon() {
       // the treasure inside the chest has not been discovered yet
       { name: "treasure", discovered: false, description: "Treasure" },
     ]),
-    {
-      unlocked: (item) => {
-        if (item.name === "chest") {
-          ecs.getEntity("treasure").discovered = true;
-        }
-      },
-    },
   );
+  ecs.addEventListener("unlocked", ({ item }) => {
+    if (item.name === "chest") {
+      ecs.getEntity("treasure").discovered = true;
+    }
+  });
   const dungeon = ecs.getRoom("dungeon");
   const key = ecs.getEntity("key");
   const chest = ecs.getEntity("chest");
@@ -59,16 +57,20 @@ describe("ECS dungeon room", () => {
   it("rejects moving to an unknown location", () => {
     const { ecs } = createDungeon();
     const movedHook = vi.fn();
-    ecs.hooks.moved = movedHook;
+    ecs.addEventListener("traveled", (event) => {
+      movedHook(event.room);
+    });
     expect(ecs.tryMove("nowhere")).toBe(false);
     expect(ecs.player.location).toBeUndefined();
     expect(movedHook).not.toHaveBeenCalled();
   });
 
-  it("calls the moved hook with the target room when the player moves", () => {
+  it("calls the traveled hook with the target room when the player moves", () => {
     const { ecs, dungeon } = createDungeon();
     const movedHook = vi.fn();
-    ecs.hooks.moved = movedHook;
+    ecs.addEventListener("traveled", (event) => {
+      movedHook(event.room);
+    });
     expect(ecs.tryMove(dungeon.name)).toBe(true);
     expect(ecs.player.location).toBe(dungeon);
     expect(movedHook).toHaveBeenCalledTimes(1);
@@ -90,8 +92,10 @@ describe("ECS dungeon room", () => {
 
   it("lets the player pick up the key from the dungeon floor", () => {
     const { ecs, key, dungeon } = createDungeon();
-    const pickupHook = vi.fn(ecs.hooks.pickup);
-    ecs.hooks.pickup = pickupHook;
+    const pickupHook = vi.fn();
+    ecs.addEventListener("pickup", (event) => {
+      pickupHook(event.item);
+    });
     expect(key.location).toBe(dungeon);
     // Can't pick up when not in the same room
     expect(ecs.tryPickUp("key")).toBe(false);

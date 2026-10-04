@@ -23,14 +23,14 @@ export default class WarningGraphic extends Phaser.GameObjects.Sprite {
   show() {
     this.scene.tweens.add({
       targets: this,
-      scaleX: 0.4,
-      scaleY: 0.4,
+      scaleX: 0.8,
+      scaleY: 0.8,
       duration: 400,
       delay: 250,
     });
     this.scene.tweens.add({
       targets: this,
-      y: this.y - 10,
+      y: this.y - 20,
       duration: 600,
       yoyo: true,
       repeat: 3,
@@ -59,7 +59,9 @@ export default class WarningGraphic extends Phaser.GameObjects.Sprite {
   }
 
   destroy(fromScene?: boolean) {
-    this.scene.tweens.killTweensOf(this);
+    if (this.scene) {
+      this.scene.tweens.killTweensOf(this);
+    }
     super.destroy(fromScene);
   }
 

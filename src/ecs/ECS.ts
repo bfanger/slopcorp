@@ -1,31 +1,33 @@
 import { inventory, type Entity, type Room } from "./Entity";
 
-/**
- * Create entities inside a location.
- *
- * Usage:
- *   const entities = [...createLocation("room1", $room1entities), ...createLocation("room2", $room2entities)]
- */
-export function createLocation(
-  name: string,
-  entities: Omit<Entity, "location">[],
-): (Omit<Entity, "location"> & {
-  location: Room;
-})[] {
-  const location: Room = { type: "room", name };
-  return entities.map((entity) => ({ ...entity, location }));
+type EventMap = {
+  pickup: ItemEvent;
+  unlocked: ItemEvent;
+  traveled: RoomEvent;
+  started: CustomEvent;
+};
+class ItemEvent extends Event {
+  constructor(
+    type: "pickup" | "unlocked",
+    public readonly item: Entity,
+  ) {
+    super(type);
+  }
 }
 
-export type Hooks = {
-  pickup?: (item: Entity) => void;
-  unlocked?: (item: Entity) => void;
-  moved?: (room: Room) => void;
-};
+class RoomEvent extends Event {
+  constructor(
+    type: "traveled",
+    public readonly room: Room,
+  ) {
+    super(type);
+  }
+}
 
-export type GameEvent = {
+export type GameHook = {
   /** Replaces the answer from the the default tool */
   message?: string;
-  /** Duration of the animation in ms */
+  /** Delay before processing the message in ms (allows the animations to complete first) */
   delay?: number;
 };
 
@@ -37,12 +39,30 @@ export default class ECS {
     location?: Room;
   };
   public entities: Entity[];
-  public hooks: Hooks;
+  public gameHook: GameHook | undefined;
+  private events = new EventTarget();
 
-  constructor(entities: Entity[], hooks: Hooks = {}) {
+  constructor(entities: Entity[]) {
     this.entities = entities;
-    this.hooks = hooks;
     this.player = {};
+  }
+
+  delay(ms: number): void {
+    if ((this.gameHook?.delay ?? 0) < ms) {
+      this.gameHook = { ...this.gameHook, delay: ms };
+    }
+  }
+
+  start(): void {
+    this.events.dispatchEvent(new CustomEvent("started"));
+  }
+
+  /** Subscribe to a typed event emitted by the ECS */
+  addEventListener<K extends keyof EventMap>(
+    type: K,
+    listener: (event: EventMap[K]) => void,
+  ): void {
+    this.events.addEventListener(type, listener as EventListener);
   }
 
   /** Raw access to entities, no game logic applied */
@@ -83,7 +103,7 @@ export default class ECS {
     }
     if (this.player.location?.name !== target.name) {
       this.player.location = target;
-      this.hooks.moved?.(target);
+      this.events.dispatchEvent(new RoomEvent("traveled", target));
     }
     return true;
   }
@@ -126,7 +146,7 @@ export default class ECS {
     }
     if (targetEntity.locked === itemEntity.name) {
       targetEntity.locked = undefined;
-      this.hooks.unlocked?.(targetEntity);
+      this.events.dispatchEvent(new ItemEvent("unlocked", targetEntity));
       return true;
     }
     return false;
@@ -142,7 +162,7 @@ export default class ECS {
       return false;
     }
     entity.location = inventory;
-    this.hooks.pickup?.(entity);
+    this.events.dispatchEvent(new ItemEvent("pickup", entity));
     return true;
   }
 
@@ -152,4 +172,20 @@ export default class ECS {
     }
     return `\n- ${items.join("\n- ")}\n`;
   }
+}
+
+/**
+ * Create entities inside a location.
+ *
+ * Usage:
+ *   const entities = [...createLocation("room1", $room1entities), ...createLocation("room2", $room2entities)]
+ */
+export function createLocation(
+  name: string,
+  entities: Omit<Entity, "location">[],
+): (Omit<Entity, "location"> & {
+  location: Room;
+})[] {
+  const location: Room = { type: "room", name };
+  return entities.map((entity) => ({ ...entity, location }));
 }

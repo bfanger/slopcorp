@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Conversation } from "./Conversation.svelte";
+import { mockLLM } from "./mockLLM";
 
 const signal = new AbortController().signal;
 
@@ -92,9 +93,8 @@ describe("Conversation", () => {
           "role": "error",
         },
         {
-          "content": "undefined
-      ",
-          "role": "assistant",
+          "content": "Empty response",
+          "role": "error",
         },
       ]
     `);
@@ -133,25 +133,6 @@ describe("Conversation", () => {
     ]);
   });
 });
-
-function mockLLM(responses: string[]) {
-  const seenPrompts: string[] = [];
-  const createLLM = () =>
-    Promise.resolve({
-      promptStreaming: (message: string) => {
-        seenPrompts.push(message);
-        const response = responses.shift()!;
-        return new ReadableStream<string>({
-          start(controller) {
-            controller.enqueue(response);
-            controller.close();
-          },
-        });
-      },
-      append: () => Promise.resolve(undefined),
-    }) as unknown as Promise<LanguageModel>;
-  return { createLLM, seenPrompts };
-}
 
 function createDummyWeatherTool(): LanguageModelTool {
   return {

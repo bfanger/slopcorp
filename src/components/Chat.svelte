@@ -12,30 +12,39 @@
     Conversation,
     type ChatMessage,
   } from "../services/Conversation.svelte";
+  import { mockLLM } from "../services/mockLLM";
   import AutoScroll from "./AutoScroll.svelte";
   import type ECS from "../ecs/ECS";
-  import type { GameEvent } from "../ecs/ECS";
 
   type Props = {
     startPrompt: string;
-    createLevel: (onEvent: (event: GameEvent) => void) => ECS;
-    onstart: () => void;
+    ecs: ECS;
   };
-  let { startPrompt = "", createLevel, onstart }: Props = $props();
+  let { startPrompt = "", ecs }: Props = $props();
   let prompt = $state(untrack(() => startPrompt));
   let started = false;
 
-  let gameEvent: GameEvent | undefined;
   let input: HTMLInputElement | undefined;
 
-  const ecs = untrack(() =>
-    createLevel((e) => {
-      gameEvent = e;
-    }),
+  const debug = new URLSearchParams(window.location.search).has("debug");
+  const { createLLM } = mockLLM(
+    [
+      '```tool_code\ntravelTo(room="office")\n```',
+      "I've gone to the office.",
+      '```tool_code\ntravelTo(room="storage")\n```',
+      "I've gone to the storage room.",
+      '```tool_code\npickUp(item="paper")\n```',
+      "I'm now carrying the paper.",
+      '```tool_code\ntravelTo(room="office")\n```',
+      "I've gone back to the office.",
+      '```tool_code\nplaceItem(item="paper",target="printer")\n```',
+    ],
+    500,
   );
 
-  const chat = new Conversation(
-    `
+  let chat = $derived(
+    new Conversation(
+      `
 You are a helpful robot participating in a computer game.
 The robot is owned by the SlopCorp company.
 
@@ -60,25 +69,26 @@ travelTo(room="name_of_the_room")
 
 
 `,
-    [
-      getRoomsTool(ecs),
-      travelToTool(ecs),
-      getInventoryTool(ecs),
-      pickUpTool(ecs),
-      lookAtTool(ecs),
-      placeItemTool(ecs),
-    ],
-    undefined,
-    () => {
-      if (gameEvent) {
-        const { delay = 0, message } = gameEvent;
-        gameEvent = undefined;
-        return new Promise((resolve) =>
-          setTimeout(() => resolve(message), delay),
-        );
-      }
-      return Promise.resolve(undefined);
-    },
+      [
+        getRoomsTool(ecs),
+        travelToTool(ecs),
+        getInventoryTool(ecs),
+        pickUpTool(ecs),
+        lookAtTool(ecs),
+        placeItemTool(ecs),
+      ],
+      debug ? createLLM : undefined,
+      () => {
+        if (ecs.gameHook) {
+          const { delay = 0, message } = ecs.gameHook;
+          ecs.gameHook = undefined;
+          return new Promise((resolve) =>
+            setTimeout(() => resolve(message), delay),
+          );
+        }
+        return Promise.resolve(undefined);
+      },
+    ),
   );
   let controller: AbortController | undefined;
   let messages: ChatMessage[] = $derived([
@@ -152,8 +162,8 @@ travelTo(room="name_of_the_room")
     controller = new AbortController();
     const signal = controller.signal;
     if (!started) {
-      onstart();
-      started = false;
+      ecs.start();
+      started = true;
     }
     const promise = chat.prompt(prompt, { signal });
     prompt = "";

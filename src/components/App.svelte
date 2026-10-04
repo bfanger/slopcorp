@@ -1,13 +1,12 @@
 <script lang="ts">
-  import PrinterScene, { createLevel1 } from "../scenes/PrinterScene";
   import DownloadOverlay from "./DownloadOverlay.svelte";
   import Chat from "./Chat.svelte";
-  import type { Game } from "phaser";
+  import type ECS from "../ecs/ECS";
 
   type Props = {
-    game: Game;
+    ecs: ECS;
   };
-  let { game }: Props = $props();
+  let { ecs }: Props = $props();
   const testPrompts = {
     empty: "",
     fix: "Fix the printer issue",
@@ -17,9 +16,5 @@
 </script>
 
 <DownloadOverlay>
-  <Chat
-    startPrompt={testPrompts.empty}
-    createLevel={createLevel1(game.scene.getScene("printer") as PrinterScene)}
-    onstart={() => (game.scene.getScene("printer") as PrinterScene).started()}
-  />
+  <Chat {ecs} startPrompt={testPrompts.empty} />
 </DownloadOverlay>
