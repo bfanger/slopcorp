@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import type ECS from "../ecs/ECS";
 import introAsset from "../assets/intro.jpg";
 import dissolveNoiseAsset from "../assets/dissolve-noise.png";
 
@@ -14,7 +15,7 @@ void main()
     vec4 color = texture2D(uImage, outTexCoord);
     float n = texture2D(uNoise, outTexCoord).r;
     float t = clamp(uProgress, 0.0, 1.0);
-    float edge = 0.055;
+    float edge = 0.28;
     float keep = t <= 0.0 ? 1.0 : smoothstep(t, t + edge, n);
     float band = t <= 0.0 ? 0.0 : smoothstep(t - edge, t, n) * (1.0 - smoothstep(t, t + edge, n));
     vec3 glow = vec3(1.0, 0.75, 0.4);
@@ -48,6 +49,13 @@ export default class IntroGraphic extends Phaser.GameObjects.Shader {
     );
     this.setScale(0.84);
     this.setDepth(1000);
+  }
+
+  connect(ecs: ECS) {
+    ecs.addEventListener("started", () => {
+      this.outro();
+      ecs.delay(500);
+    });
   }
 
   outro() {

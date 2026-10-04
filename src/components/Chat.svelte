@@ -38,6 +38,7 @@
       '```tool_code\ntravelTo(room="office")\n```',
       "I've gone back to the office.",
       '```tool_code\nplaceItem(item="paper",target="printer")\n```',
+      "We won!",
     ],
     500,
   );

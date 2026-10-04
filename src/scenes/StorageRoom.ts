@@ -13,8 +13,17 @@ export default class StorageRoom extends Phaser.GameObjects.Container {
     this.add(this.background);
   }
 
-  fade(alpha: number, duration: number, delay = 0) {
-    this.scene.tweens.add({ targets: this, alpha, duration, delay });
+  intro() {
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 1,
+      duration: 400,
+      delay: 500,
+    });
+  }
+
+  outro() {
+    this.scene.tweens.add({ targets: this, alpha: 0, duration: 400 });
   }
 
   static preload(scene: Phaser.Scene) {
