@@ -32,7 +32,7 @@ export default class OfficeRoom extends Phaser.GameObjects.Container {
     this.scene.tweens.add({ targets: this, alpha: 0, duration: 400 });
   }
 
-  won() {
+  showVictory() {
     this.warning.stopAndHide();
     this.scene.tweens.add({
       targets: this.background,
@@ -47,6 +47,7 @@ export default class OfficeRoom extends Phaser.GameObjects.Container {
         this.warning.stopAndHide();
       }
     });
+    ecs.addEventListener("victory", () => this.showVictory());
   }
 
   static preload(scene: Phaser.Scene) {

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "events-system": {
+      "source": "phaserjs/phaser",
+      "sourceType": "github",
+      "skillPath": "skills/events-system/SKILL.md",
+      "computedHash": "8a8248a782f4310e24111c774493a139fcc6057d4afe9ba3e5482145a0848f2b"
+    }
+  }
+}

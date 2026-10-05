@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Roboto";
+  src: url("./assets/fonts/Roboto-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
+}
+
 @theme {
+  --font-sans: "Roboto", system-ui, sans-serif;
   --color-imessage-blue: #0b84ff;
   --color-darkblue: #050c1e;
   --color-panel-background: #0b1b3d;

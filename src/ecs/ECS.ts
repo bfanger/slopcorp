@@ -5,6 +5,8 @@ type EventMap = {
   unlocked: ItemEvent;
   traveled: RoomEvent;
   started: CustomEvent;
+  gameover: CustomEvent;
+  victory: CustomEvent;
 };
 class ItemEvent extends Event {
   constructor(
@@ -55,6 +57,14 @@ export default class ECS {
 
   start(): void {
     this.events.dispatchEvent(new CustomEvent("started"));
+  }
+
+  victory(): void {
+    this.events.dispatchEvent(new CustomEvent("victory"));
+  }
+
+  gameOver(): void {
+    this.events.dispatchEvent(new CustomEvent("gameover"));
   }
 
   /** Subscribe to a typed event emitted by the ECS */

@@ -58,14 +58,14 @@ export default class MainScene extends Phaser.Scene {
     this.locationsPanel.traveled(room.name);
   }
 
-  won() {
-    (this.rooms.office as OfficeRoom).won();
+  showVictory() {
     const victory = this.add.text(
       this.game.scale.gameSize.width / 2,
       this.game.scale.gameSize.height / 2 + 100,
       "Mission successful!",
       {
         fontSize: "96px",
+        fontFamily: "Roboto",
         fontStyle: "bold",
         align: "center",
         color: "#ffffff",
@@ -87,7 +87,7 @@ export default class MainScene extends Phaser.Scene {
 
     ecs.addEventListener("unlocked", ({ item }) => {
       if (item.name === "printer") {
-        this.won();
+        ecs.victory();
         ecs.gameHook = {
           message: "Level complete! The printer issue is fixed",
           delay: 1000,
@@ -99,6 +99,7 @@ export default class MainScene extends Phaser.Scene {
       this.traveled(room);
     });
     ecs.addEventListener("pickup", () => ecs.delay(1000));
+    ecs.addEventListener("victory", () => this.showVictory());
   }
 }
 

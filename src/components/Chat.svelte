@@ -16,7 +16,7 @@
   import AutoScroll from "./AutoScroll.svelte";
   import type ECS from "../ecs/ECS";
   import avatar from "../assets/handdrawn/avatar.png";
-  import slopcorp from "../assets/slopcorp.png";
+  import slopcorpLogo from "../assets/slopcorp.png";
   import { fade } from "svelte/transition";
 
   type Props = {
@@ -113,17 +113,13 @@ travelTo(room="name_of_the_room")
   }}
 />
 <div
-  class="mt-2 flex items-center gap-3 rounded-t-2xl border border-b-0 border-panel-border bg-panel-background px-2.5 py-2 font-semibold text-white"
+  class="mt-2 flex items-center rounded-t-2xl border border-b-0 border-panel-border bg-panel-background px-2.5 py-1 font-semibold text-white/80 [text-box-trim:trim-both]"
 >
-  <img
-    src={slopcorp}
-    alt="SlopCorp"
-    class="mt-px mr-2 h-8 drop-shadow-[0_0_3px_black]"
-  />
+  <img src={slopcorpLogo} alt="SlopCorp" class="mr-4 h-11" />
 
-  <span class="text-lg leading-none font-normal text-white/80 italic">
+  <div class="-mt-1 text-lg font-normal italic">
     Test your prompting skills!
-  </span>
+  </div>
   {#if chat.thinking && (!chat.concept || chat.concept.content === "")}
     <div
       in:fade={{ duration: 200, delay: 400 }}
@@ -134,7 +130,7 @@ travelTo(room="name_of_the_room")
   {/if}
 </div>
 <AutoScroll detect={messages.length + (chat.concept?.content.length ?? 0)}>
-  <div class="flex w-full flex-col pt-5 pl-12">
+  <div class="flex w-full flex-col pt-5 pr-3 pl-16">
     {#each messages as message, i (i)}
       {#if message.role === "error"}
         <div
@@ -165,14 +161,14 @@ travelTo(room="name_of_the_room")
             <img
               src={avatar}
               alt="robot avatar"
-              class="absolute -top-3 -left-11 size-10"
+              class="absolute -top-3 -left-13 size-10 rounded-sm"
             />
           {/if}
           <pre
             class={`mb-4 min-h-7 max-w-md rounded-2xl px-4 py-2 font-sans leading-snug whitespace-pre-wrap ${
               message.role === "user"
                 ? "ml-4 rounded-br-xs bg-imessage-blue text-white"
-                : "mr-4 rounded-tl-xs bg-[#e9e9eb] text-sm text-black"
+                : "mr-4 rounded-tl-xs bg-lightgray text-sm text-black"
             }`}>{message.content}</pre>
         </div>
       {/if}
