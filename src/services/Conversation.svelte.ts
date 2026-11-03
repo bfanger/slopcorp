@@ -1,12 +1,8 @@
 import Ajv from "ajv";
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkStringify from "remark-stringify";
 import parseToolCall, { type ToolCall } from "./parseToolCall";
+import { splitToolCalls } from "./splitToolCalls";
 import type { ToolResponse, ToolStatus } from "../ecs/ecs-tools";
 import type { AnyValidateFunction } from "ajv/dist/core";
-
-const markdownProcessor = unified().use(remarkParse).use(remarkStringify);
 
 export type ChatMessage = {
   role: "user" | "assistant" | "tool" | "error";
@@ -73,7 +69,7 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
     try {
       for await (const chunk of llm.promptStreaming(message, { signal })) {
         response += chunk;
-        const pos = response.indexOf("```");
+        const pos = response.search(/```|<\|tool|<tool/);
         this.concept.content =
           pos === -1 ? response : response.substring(0, pos);
       }
@@ -88,19 +84,17 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
       return;
     }
 
-    const [nodes, toolCalls] = stripToolCalls(
-      markdownProcessor.parse(response),
-    );
-    if (nodes.children.length > 0) {
+    const { content, toolCalls } = splitToolCalls(response);
+    if (content) {
       this.messages.push({
         role: "assistant",
-        content: markdownProcessor.stringify(nodes),
+        content,
       });
     }
     this.concept = undefined;
 
     if (toolCalls.length === 0) {
-      if (nodes.children.length === 0) {
+      if (!content) {
         this.messages.push({ role: "error", content: "Empty response" });
       }
       return;
@@ -112,7 +106,7 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
 
         throw new Error("Only one toolcall per message is supported");
       }
-      toolCall = parseToolCall(toolCalls[0].value);
+      toolCall = parseToolCall(toolCalls[0]);
       if (
         previousToolCall &&
         JSON.stringify(toolCall) === JSON.stringify(previousToolCall)
@@ -193,25 +187,6 @@ ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
     });
     return fn(this.llm);
   }
-}
-
-type RootNode = ReturnType<typeof markdownProcessor.parse>;
-type CodeNode = Extract<RootNode["children"][number], { type: "code" }>;
-
-export function stripToolCalls(ast: RootNode): [RootNode, CodeNode[]] {
-  const toolCalls: CodeNode[] = [];
-  for (let i = ast.children.length - 1; i >= 0; i--) {
-    const child = ast.children[i];
-    if (
-      child.type === "code" &&
-      typeof child.lang === "string" &&
-      ["tool_code", "tool_call"].includes(child.lang)
-    ) {
-      toolCalls.push(child);
-      ast.children.splice(i, 1);
-    }
-  }
-  return [ast, toolCalls.reverse()];
 }
 
 const ajv = new Ajv({ allErrors: true });

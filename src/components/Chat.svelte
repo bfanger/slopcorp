@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import {
     getInventoryTool,
     getRoomsTool,
@@ -25,6 +25,7 @@
   };
   let { startPrompt = "", ecs }: Props = $props();
   let prompt = $state(untrack(() => startPrompt));
+  let loading: Promise<void> = $state(new Promise(() => undefined));
   let started = false;
 
   let input: HTMLInputElement | undefined;
@@ -103,6 +104,18 @@ travelTo(room="name_of_the_room")
     ...chat.messages,
     ...(chat.concept ? [chat.concept] : []),
   ]);
+
+  onMount(() => {
+    console.info("Starting LLM session");
+    const start = Date.now();
+    loading = chat
+      .execute(() => Promise.resolve())
+      .then(() => {
+        console.info(
+          `Created LLM session in ${Math.round((Date.now() - start) / 1000)}sec`,
+        );
+      });
+  });
 </script>
 
 <svelte:window
@@ -132,14 +145,20 @@ travelTo(room="name_of_the_room")
 
 <AutoScroll detect={messages.length + (chat.concept?.content.length ?? 0)}>
   <div class="flex w-full flex-col pt-5 pr-3 pl-16">
-    {#await chat.execute(() => Promise.resolve())}
+    {#await loading}
       <div>
         <div class="animate-pulse font-medium text-slate-700">
           Loading model weights...
         </div>
-        <div class="pt-3 text-sm text-slate-700" in:fade={{ delay: 10_000 }}>
-          In recent Chrome, creating a LLM session became unreliable 😞<br />
-          This bug also affects the official demo's:
+        <div
+          class="pt-3 text-xs leading-relaxed text-slate-700"
+          in:fade={{ delay: 10_000 }}
+        >
+          Since a recent update, creating a LanguageModel session became
+          extremely slow 😞
+          <br />
+          More than 5 minutes on a fast pc, this bug also affects the official demo's
+          on:
           <a
             href="https://chrome.dev/web-ai-demos/"
             class="undeline text-blue-800"

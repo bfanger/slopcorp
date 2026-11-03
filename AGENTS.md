@@ -3,6 +3,8 @@ This is a Phaser 4 project with Vite and uses pnpm for package management
 It also has a Svelte & Tailwind to render the chat interface
 To validate types, use svelte-check instead of tsc
 
+Question and tasks are not related to the pi agent, keep the focus on this project.
+
 ## Structure
 
 ```

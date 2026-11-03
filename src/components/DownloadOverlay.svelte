@@ -16,6 +16,7 @@
   };
   async function activate() {
     availability = "downloading";
+    console.info("Creating LLM session (start the download)");
     const session = await LanguageModel.create({
       ...options,
       monitor(monitor) {
