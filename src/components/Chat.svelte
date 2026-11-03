@@ -129,50 +129,69 @@ travelTo(room="name_of_the_room")
     </div>
   {/if}
 </div>
+
 <AutoScroll detect={messages.length + (chat.concept?.content.length ?? 0)}>
   <div class="flex w-full flex-col pt-5 pr-3 pl-16">
-    {#each messages as message, i (i)}
-      {#if message.role === "error"}
-        <div
-          class="mb-1 max-w-fit rounded-sm bg-orange-800 px-2 py-1 text-xs font-medium text-white"
-          title={message.retry}
-        >
-          {message.content}
+    {#await chat.execute(() => Promise.resolve())}
+      <div>
+        <div class="animate-pulse font-medium text-slate-700">
+          Loading model weights...
         </div>
-      {:else if message.role === "tool"}
-        <div
-          class="mb-1 max-w-fit rounded-sm text-xs text-white {message.toolStatus ===
-          'failed'
-            ? 'bg-amber-700'
-            : 'bg-teal-700'} px-2 py-1 leading-snug font-medium"
-          title={message.content || message.retry}
-        >
-          {message.toolCall?.action}({JSON.stringify(
-            message.toolCall?.parameters,
-          )})
+        <div class="pt-3 text-sm text-slate-700" in:fade={{ delay: 10_000 }}>
+          In recent Chrome, creating a LLM session became unreliable 😞<br />
+          This bug also affects the official demo's:
+          <a
+            href="https://chrome.dev/web-ai-demos/"
+            class="undeline text-blue-800"
+          >
+            https://chrome.dev/web-ai-demos/
+          </a>
         </div>
-      {:else}
-        <div
-          class="relative flex gap-1 {message.role === 'user'
-            ? 'self-end'
-            : 'self-start'}"
-        >
-          {#if message.role === "assistant"}
-            <img
-              src={avatar}
-              alt="robot avatar"
-              class="absolute -top-3 -left-13 size-10 rounded-sm"
-            />
-          {/if}
-          <pre
-            class={`mb-4 min-h-7 max-w-md rounded-2xl px-4 py-2 font-sans leading-snug whitespace-pre-wrap ${
-              message.role === "user"
-                ? "ml-4 rounded-br-xs bg-imessage-blue text-white"
-                : "mr-4 rounded-tl-xs bg-lightgray text-sm text-black"
-            }`}>{message.content}</pre>
-        </div>
-      {/if}
-    {/each}
+      </div>
+    {:then}
+      {#each messages as message, i (i)}
+        {#if message.role === "error"}
+          <div
+            class="mb-1 max-w-fit rounded-sm bg-orange-800 px-2 py-1 text-xs font-medium text-white"
+            title={message.retry}
+          >
+            {message.content}
+          </div>
+        {:else if message.role === "tool"}
+          <div
+            class="mb-1 max-w-fit rounded-sm text-xs text-white {message.toolStatus ===
+            'failed'
+              ? 'bg-amber-700'
+              : 'bg-teal-700'} px-2 py-1 leading-snug font-medium"
+            title={message.content || message.retry}
+          >
+            {message.toolCall?.action}({JSON.stringify(
+              message.toolCall?.parameters,
+            )})
+          </div>
+        {:else}
+          <div
+            class="relative flex gap-1 {message.role === 'user'
+              ? 'self-end'
+              : 'self-start'}"
+          >
+            {#if message.role === "assistant"}
+              <img
+                src={avatar}
+                alt="robot avatar"
+                class="absolute -top-3 -left-13 size-10 rounded-sm"
+              />
+            {/if}
+            <pre
+              class={`mb-4 min-h-7 max-w-md rounded-2xl px-4 py-2 font-sans leading-snug whitespace-pre-wrap ${
+                message.role === "user"
+                  ? "ml-4 rounded-br-xs bg-imessage-blue text-white"
+                  : "mr-4 rounded-tl-xs bg-lightgray text-sm text-black"
+              }`}>{message.content}</pre>
+          </div>
+        {/if}
+      {/each}
+    {/await}
   </div>
 </AutoScroll>
 <form
